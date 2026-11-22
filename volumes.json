@@ -1,0 +1,35 @@
+{
+  "series": {
+    "title": "The Weird Guy",
+    "author": "superbear1859",
+    "tagline": "Hand-drawn animated comics with cartoon sound effects."
+  },
+  "volumes": [
+    {
+      "id": "01",
+      "number": 1,
+      "title": "The Weird Guy",
+      "edition": "Original Notebook Edition",
+      "description": "The Weird Guy argues with the Narrator, dodges giant erasers and lava, and discovers the power of paper.",
+      "panels": 16,
+      "duration": "0:56",
+      "path": "volumes/01/",
+      "badgeColor": "#FACC15",
+      "coverAccent": "#2563EB",
+      "coverTag": "Vol. 1"
+    },
+    {
+      "id": "02",
+      "number": 2,
+      "title": "We Are in a Book!",
+      "edition": "Big, Blank Edition",
+      "description": "Is it a book or a comic? The Weird Guy builds Comic 2000 — waterproof, lava-proof, and everything-proof!",
+      "panels": 16,
+      "duration": "0:59",
+      "path": "volumes/02/",
+      "badgeColor": "#38BDF8",
+      "coverAccent": "#EA580C",
+      "coverTag": "Vol. 2"
+    }
+  ]
+}

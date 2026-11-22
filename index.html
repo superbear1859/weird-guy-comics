@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Weird Guy — Animated Comic Series by superbear1859</title>
+  <link rel="stylesheet" href="assets/reader.css" />
+</head>
+<body>
+  <main class="library-wrap">
+    <header class="hero">
+      <div>
+        <span class="hero-kicker">Animated Comic Series</span>
+        <h1 id="seriesTitle" class="hero-title">The Weird Guy</h1>
+        <p id="seriesSub" class="hero-sub">Hand-drawn animated comics with cartoon sound effects &bull; By superbear1859</p>
+      </div>
+      <div class="hero-stats" id="heroStats">
+        <div class="stat-chip">
+          <span class="stat-num" id="statVols">—</span>
+          <span class="stat-lbl">Volumes</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-num" id="statRead">0</span>
+          <span class="stat-lbl">Read</span>
+        </div>
+      </div>
+    </header>
+
+    <section id="continueBanner" class="continue-banner" style="display: none;"></section>
+
+    <section>
+      <div class="section-header" style="margin-bottom: 12px;">
+        <h2 class="section-title">All Volumes</h2>
+        <span class="section-hint">Click any volume to watch with sound effects</span>
+      </div>
+      <div id="shelfGrid" class="shelf-grid"></div>
+    </section>
+
+    <footer class="site-footer">
+      The Weird Guy Animated Comics &bull; Created by superbear1859 &bull; Hosted on GitHub Pages
+    </footer>
+  </main>
+
+  <script src="assets/nav.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const esc = s => String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+      function weirdGuyCoverDoodle(vol) {
+        const accent = vol.coverAccent || '#2563EB';
+        const badge = vol.badgeColor || '#FACC15';
+        return `
+          <svg width="88" height="72" viewBox="0 0 110 90" aria-hidden="true">
+            <rect x="6" y="8" width="98" height="74" rx="10" fill="#FFFEFA" stroke="#1E1B24" stroke-width="2.5" />
+            <circle cx="55" cy="34" r="14" fill="${badge}" stroke="#1E1B24" stroke-width="2.5" />
+            <circle cx="50" cy="32" r="2.2" fill="#1E1B24" />
+            <circle cx="60" cy="32" r="2.2" fill="#1E1B24" />
+            <path d="M 48 39 Q 55 44 62 39" fill="none" stroke="#1E1B24" stroke-width="2.2" stroke-linecap="round" />
+            <path d="M 55 48 L 55 68 M 55 54 L 40 48 M 55 54 L 70 46 M 55 68 L 45 78 M 55 68 L 65 78"
+                  fill="none" stroke="#1E1B24" stroke-width="2.5" stroke-linecap="round" />
+            <circle cx="88" cy="22" r="7" fill="${accent}" opacity="0.2" />
+            <text x="88" y="26" text-anchor="middle" font-size="11" font-weight="900" fill="${accent}">#${esc(vol.number)}</text>
+          </svg>
+        `;
+      }
+
+      function renderLibrary(data) {
+        const series = data.series || {};
+        const volumes = Array.isArray(data.volumes) ? data.volumes : [];
+        const progress = window.WeirdGuyProgress ? window.WeirdGuyProgress.load() : { lastVolumeId: null, volumes: {} };
+
+        if (series.title) {
+          document.getElementById('seriesTitle').textContent = series.title;
+        }
+        if (series.tagline || series.author) {
+          const parts = [series.tagline, series.author ? `By ${series.author}` : ''].filter(Boolean);
+          document.getElementById('seriesSub').textContent = parts.join(' • ');
+        }
+
+        const readCount = volumes.filter(v => progress.volumes[v.id] && progress.volumes[v.id].completed).length;
+        document.getElementById('statVols').textContent = String(volumes.length);
+        document.getElementById('statRead').textContent = `${readCount} / ${volumes.length}`;
+
+        // Continue Reading banner
+        const banner = document.getElementById('continueBanner');
+        if (progress.lastVolumeId) {
+          const lastIdx = volumes.findIndex(v => v.id === progress.lastVolumeId);
+          const lastVol = lastIdx >= 0 ? volumes[lastIdx] : null;
+          const lastProg = lastVol ? progress.volumes[lastVol.id] : null;
+
+          if (lastVol && lastProg) {
+            const nextVol = volumes[lastIdx + 1] || null;
+            if (lastProg.completed && nextVol && !(progress.volumes[nextVol.id] && progress.volumes[nextVol.id].completed)) {
+              banner.style.display = 'flex';
+              banner.innerHTML = `
+                <div class="continue-info">
+                  <span class="continue-label">Up Next</span>
+                  <span class="continue-title">Volume #${esc(nextVol.number)}: ${esc(nextVol.title)}</span>
+                  <span class="continue-meta">You finished Volume #${esc(lastVol.number)} &bull; Ready for the next adventure!</span>
+                </div>
+                <a class="btn-primary" href="${esc(nextVol.path)}">Start Volume #${esc(nextVol.number)} &rarr;</a>
+              `;
+            } else if (!lastProg.completed && lastProg.sceneIdx > 0) {
+              const panelLabel = lastProg.sceneIdx === 0 ? 'Cover' : `Panel ${lastProg.sceneIdx}`;
+              banner.style.display = 'flex';
+              banner.innerHTML = `
+                <div class="continue-info">
+                  <span class="continue-label">Continue Reading</span>
+                  <span class="continue-title">Volume #${esc(lastVol.number)}: ${esc(lastVol.title)}</span>
+                  <span class="continue-meta">Left off at ${panelLabel} (${lastProg.sceneIdx + 1} / ${lastProg.totalScenes || lastVol.panels})</span>
+                </div>
+                <a class="btn-primary" href="${esc(lastVol.path)}#scene=${lastProg.sceneIdx}">Resume &rarr;</a>
+              `;
+            }
+          }
+        }
+
+        // Shelf Grid
+        const grid = document.getElementById('shelfGrid');
+        grid.innerHTML = volumes.map(vol => {
+          const vp = progress.volumes[vol.id];
+          const total = (vp && vp.totalScenes) || vol.panels || 16;
+          const pct = vp ? (vp.completed ? 100 : Math.min(99, Math.round(((vp.sceneIdx + 1) / total) * 100))) : 0;
+
+          let statusHtml = '<span class="vol-status">Unread</span>';
+          let ctaLabel = `Watch Volume #${vol.number}`;
+          let href = vol.path;
+
+          if (vp && vp.completed) {
+            statusHtml = '<span class="vol-status read">&#10003; Read</span>';
+            ctaLabel = 'Watch Again';
+          } else if (vp && vp.sceneIdx > 0) {
+            statusHtml = `<span class="vol-status reading">Panel ${vp.sceneIdx} / ${total}</span>`;
+            ctaLabel = 'Continue Watching';
+            href = `${vol.path}#scene=${vp.sceneIdx}`;
+          }
+
+          const coverArt = vol.cover
+            ? `<img src="${esc(vol.cover)}" alt="Volume ${esc(vol.number)} cover" style="max-height:84px;border-radius:8px;border:2px solid #1E1B24;" />`
+            : weirdGuyCoverDoodle(vol);
+
+          const progressHtml = vp ? `
+            <div class="progress-wrap">
+              <div class="progress-track">
+                <div class="progress-fill${vp.completed ? ' done' : ''}" style="width: ${pct}%"></div>
+              </div>
+              <span class="progress-text">${vp.completed ? 'Completed' : `${pct}% watched`}</span>
+            </div>
+          ` : '';
+
+          return `
+            <article class="vol-card">
+              <div class="vol-cover">
+                <div class="vol-cover-top">
+                  <span class="badge-num" style="background: ${esc(vol.badgeColor || '#FACC15')}">#${esc(vol.number)}</span>
+                  ${statusHtml}
+                </div>
+                <div class="vol-cover-art">${coverArt}</div>
+                <div class="vol-cover-title">${esc(vol.title)}</div>
+              </div>
+              <div class="vol-body">
+                <div class="vol-edition">${esc(vol.edition || '')}</div>
+                <p class="vol-desc">${esc(vol.description || '')}</p>
+                <div class="vol-meta">
+                  <span class="meta-pill">${esc(vol.panels)} Scenes</span>
+                  <span class="meta-pill">${esc(vol.duration)}</span>
+                  <span class="meta-pill">&#128266; Cartoon SFX</span>
+                </div>
+                ${progressHtml}
+                <div class="vol-actions">
+                  <a class="vol-read-btn" href="${esc(href)}">&#9654; ${esc(ctaLabel)}</a>
+                </div>
+              </div>
+            </article>
+          `;
+        }).join('');
+      }
+
+      fetch('volumes.json')
+        .then(r => {
+          if (!r.ok) throw new Error('Could not load volumes.json');
+          return r.json();
+        })
+        .then(renderLibrary)
+        .catch(() => {
+          document.getElementById('shelfGrid').innerHTML = `
+            <div class="card" style="grid-column: 1 / -1;">
+              <p style="font-size:14px;font-weight:700;margin-bottom:6px;">Open via a local server or GitHub Pages</p>
+              <p style="font-size:13px;color:#57534E;">
+                Your browser blocked loading <code>volumes.json</code> directly from <code>file://</code>.
+                Run <code>python3 -m http.server</code> in this folder (or open the GitHub Pages URL) to browse volumes.
+              </p>
+            </div>
+          `;
+        });
+    })();
+  </script>
+</body>
+</html>

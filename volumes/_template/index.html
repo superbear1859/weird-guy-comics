@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Weird Guy #03: Title Here — Animated Comic by superbear1859</title>
+  <link rel="stylesheet" href="../../assets/reader.css" />
+</head>
+<body>
+  <div class="wrap">
+    <!-- Auto-populated by ../../assets/nav.js from volumes.json -->
+    <nav id="seriesNav" class="series-nav" aria-label="Series navigation"></nav>
+
+    <div class="topbar">
+      <div>
+        <div class="title-row">
+          <span class="badge-num">#3</span>
+          <h1>The Weird Guy: Title Here</h1>
+        </div>
+        <div class="subtitle">Edition Name &bull; By superbear1859 &bull; Animated Comic with Cartoon SFX</div>
+      </div>
+      <div class="meta-row">
+        <span id="sceneBadge" class="pill-badge">Cover &bull; 1 / 2</span>
+        <span id="timeReadout" class="time-txt">0:00 / 0:08</span>
+      </div>
+    </div>
+
+    <div class="card stage-wrap">
+      <div class="comic-stage-shell" id="stageContainer" title="Click to Play / Pause">
+        <div id="stage" style="width:100%;height:100%;"></div>
+        <div id="playOverlay">
+          <button id="overlayPlayBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+            Watch Animated Comic #3 (with Sound!)
+          </button>
+          <span class="overlay-hint">Click anywhere or press Space</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <input id="scrubber" type="range" min="0" max="1000" value="0" step="1" aria-label="Animation timeline" />
+        <div class="btn-bar">
+          <div class="btn-group">
+            <button id="btnPlay" class="btn-primary"><span id="playIcon">&#9654;</span><span id="playLabel">Play</span></button>
+            <button id="btnRestart" class="btn-sec" title="Restart from Cover">&#8634; Restart</button>
+            <button id="btnPrev" class="btn-sec" title="Previous Panel (Left Arrow)">&#9664; Prev</button>
+            <button id="btnNext" class="btn-sec" title="Next Panel (Right Arrow)">Next &#9654;</button>
+          </div>
+          <div class="btn-group">
+            <label class="speed-lbl">Speed
+              <select id="speedSelect">
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+              </select>
+            </label>
+            <button id="btnMute" class="btn-sec" title="Toggle Sound Effects (M)">&#128266; Sound On</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="grid-head">
+        <span>Jump to Panel</span>
+        <span>Shortcuts: Space (Play) &bull; &larr;/&rarr; (Panels) &bull; M (Mute)</span>
+      </div>
+      <div id="sceneGrid"></div>
+    </div>
+
+    <div id="bottomVolNav" class="bottom-vol-nav"></div>
+  </div>
+
+  <!-- Update data-volume-id to match the "id" in volumes.json -->
+  <script src="../../assets/nav.js" data-volume-id="03"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const VOLUME_ID = '03'; // Match "id" in volumes.json
+      const SCENES = [
+        { id: 'cover',  panelNum: null, title: 'Cover',   duration: 4.0 },
+        { id: 'panel1', panelNum: 1,    title: 'Panel 1', duration: 4.0 }
+      ];
+
+      let acc = 0;
+      for (const s of SCENES) { s.start = acc; acc += s.duration; s.end = acc; }
+      const TOTAL_DURATION = acc;
+
+      function renderScene(sceneIdx, localT) {
+        const s = SCENES[sceneIdx];
+        return `
+          <svg viewBox="0 0 600 840" xmlns="http://www.w3.org/2000/svg">
+            <rect width="600" height="840" fill="#FFFEFA" />
+            <text x="300" y="400" text-anchor="middle" font-size="36" font-weight="800" fill="#1E1B24">
+              ${s.title} (${localT.toFixed(1)}s)
+            </text>
+          </svg>
+        `;
+      }
+
+      function timeToScene(t) {
+        for (let i = 0; i < SCENES.length; i++) {
+          if (t < SCENES[i].end || i === SCENES.length - 1) {
+            return { sceneIdx: i, localT: Math.max(0, t - SCENES[i].start) };
+          }
+        }
+        return { sceneIdx: 0, localT: 0 };
+      }
+
+      const stageEl = document.getElementById('stage');
+      const playOverlay = document.getElementById('playOverlay');
+      const sceneBadge = document.getElementById('sceneBadge');
+      const timeReadout = document.getElementById('timeReadout');
+      const scrubber = document.getElementById('scrubber');
+      const btnPlay = document.getElementById('btnPlay');
+      const playIcon = document.getElementById('playIcon');
+      const playLabel = document.getElementById('playLabel');
+      const btnRestart = document.getElementById('btnRestart');
+      const btnPrev = document.getElementById('btnPrev');
+      const btnNext = document.getElementById('btnNext');
+      const btnMute = document.getElementById('btnMute');
+      const speedSelect = document.getElementById('speedSelect');
+      const sceneGrid = document.getElementById('sceneGrid');
+
+      let currentTime = 0, playing = false, speed = 1.0, lastFrameTs = null;
+      let activeSceneIdx = -1, hasInteracted = false, muted = false;
+
+      SCENES.forEach((s, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'scene-pill';
+        btn.dataset.idx = i;
+        btn.textContent = s.panelNum === null ? 'Cover' : `${s.panelNum}. ${s.title}`;
+        btn.addEventListener('click', () => {
+          playOverlay.style.opacity = '0';
+          playOverlay.style.pointerEvents = 'none';
+          seekTo(s.start + 0.01);
+          setPlaying(true);
+        });
+        sceneGrid.appendChild(btn);
+      });
+
+      const fmtTime = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+
+      function updateUI() {
+        const { sceneIdx, localT } = timeToScene(currentTime);
+        const s = SCENES[sceneIdx];
+        stageEl.innerHTML = renderScene(sceneIdx, localT);
+        sceneBadge.textContent = `${s.panelNum === null ? 'Cover' : 'Panel ' + s.panelNum} • ${sceneIdx + 1} / ${SCENES.length}`;
+        timeReadout.textContent = `${fmtTime(currentTime)} / ${fmtTime(TOTAL_DURATION)}`;
+        scrubber.value = Math.round((currentTime / TOTAL_DURATION) * 1000);
+        if (sceneIdx !== activeSceneIdx) {
+          activeSceneIdx = sceneIdx;
+          for (const el of sceneGrid.children) {
+            el.className = Number(el.dataset.idx) === sceneIdx ? 'scene-pill active' : 'scene-pill';
+          }
+          if (hasInteracted && window.WeirdGuyProgress) {
+            window.WeirdGuyProgress.save(VOLUME_ID, sceneIdx, SCENES.length, currentTime >= TOTAL_DURATION - 0.1);
+          }
+        }
+      }
+
+      function seekTo(t) {
+        hasInteracted = true;
+        currentTime = Math.max(0, Math.min(TOTAL_DURATION, t));
+        updateUI();
+      }
+
+      function setPlaying(val) {
+        playing = val;
+        playIcon.innerHTML = playing ? '&#10074;&#10074;' : '&#9654;';
+        playLabel.textContent = playing ? 'Pause' : 'Play';
+        if (playing) {
+          hasInteracted = true;
+          playOverlay.style.opacity = '0';
+          playOverlay.style.pointerEvents = 'none';
+          if (currentTime >= TOTAL_DURATION - 0.05) seekTo(0);
+          lastFrameTs = performance.now();
+          requestAnimationFrame(tick);
+        }
+      }
+
+      function tick(now) {
+        if (!playing) return;
+        const dt = Math.min(0.08, (now - lastFrameTs) / 1000) * speed;
+        lastFrameTs = now;
+        currentTime = Math.min(TOTAL_DURATION, currentTime + dt);
+        updateUI();
+        if (currentTime >= TOTAL_DURATION) {
+          if (window.WeirdGuyProgress) window.WeirdGuyProgress.save(VOLUME_ID, SCENES.length - 1, SCENES.length, true);
+          setPlaying(false);
+        } else {
+          requestAnimationFrame(tick);
+        }
+      }
+
+      btnPlay.addEventListener('click', () => setPlaying(!playing));
+      document.getElementById('stageContainer').addEventListener('click', () => setPlaying(!playing));
+      document.getElementById('overlayPlayBtn').addEventListener('click', (e) => { e.stopPropagation(); setPlaying(true); });
+      btnRestart.addEventListener('click', () => { seekTo(0); setPlaying(true); });
+      btnPrev.addEventListener('click', () => seekTo(SCENES[Math.max(0, activeSceneIdx - 1)].start + 0.01));
+      btnNext.addEventListener('click', () => seekTo(SCENES[Math.min(SCENES.length - 1, activeSceneIdx + 1)].start + 0.01));
+      scrubber.addEventListener('input', () => seekTo((Number(scrubber.value) / 1000) * TOTAL_DURATION));
+      speedSelect.addEventListener('change', () => { speed = Number(speedSelect.value) || 1; });
+      btnMute.addEventListener('click', () => {
+        muted = !muted;
+        btnMute.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound On';
+      });
+      window.addEventListener('keydown', (e) => {
+        if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+        if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+        else if (e.code === 'ArrowLeft') { e.preventDefault(); btnPrev.click(); }
+        else if (e.code === 'ArrowRight') { e.preventDefault(); btnNext.click(); }
+        else if (e.key === 'm' || e.key === 'M') { btnMute.click(); }
+      });
+
+      const initialScene = window.WeirdGuyProgress ? window.WeirdGuyProgress.getInitialSceneFromHash(SCENES.length) : null;
+      if (initialScene !== null && initialScene > 0) {
+        currentTime = SCENES[initialScene].start + 0.01;
+      }
+      updateUI();
+    })();
+  </script>
+</body>
+</html>
