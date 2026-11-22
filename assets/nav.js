@@ -107,7 +107,7 @@
   // Fallback immediately so link works even before fetch completes (or on file://)
   renderNav([]);
 
-  fetch('../../volumes.json')
+  fetch('../../volumes.json', { cache: 'no-cache' })
     .then(r => (r.ok ? r.json() : null))
     .then(data => {
       if (data && Array.isArray(data.volumes)) {

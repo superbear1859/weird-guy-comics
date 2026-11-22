@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Weird Guy — Animated Comic Series by superbear1859</title>
-  <link rel="stylesheet" href="assets/reader.css" />
+  <link rel="stylesheet" href="assets/reader.css?v=2" />
 </head>
 <body>
   <main class="library-wrap">
@@ -41,7 +41,7 @@
     </footer>
   </main>
 
-  <script src="assets/nav.js"></script>
+  <script src="assets/nav.js?v=2"></script>
   <script>
     (function () {
       'use strict';
@@ -182,23 +182,30 @@
         }).join('');
       }
 
-      fetch('volumes.json')
-        .then(r => {
-          if (!r.ok) throw new Error('Could not load volumes.json');
-          return r.json();
-        })
-        .then(renderLibrary)
-        .catch(() => {
-          document.getElementById('shelfGrid').innerHTML = `
-            <div class="card" style="grid-column: 1 / -1;">
-              <p style="font-size:14px;font-weight:700;margin-bottom:6px;">Open via a local server or GitHub Pages</p>
-              <p style="font-size:13px;color:#57534E;">
-                Your browser blocked loading <code>volumes.json</code> directly from <code>file://</code>.
-                Run <code>python3 -m http.server</code> in this folder (or open the GitHub Pages URL) to browse volumes.
-              </p>
-            </div>
-          `;
-        });
+      function loadLibrary() {
+        fetch('volumes.json', { cache: 'no-cache' })
+          .then(r => {
+            if (!r.ok) throw new Error('Could not load volumes.json');
+            return r.json();
+          })
+          .then(renderLibrary)
+          .catch(() => {
+            document.getElementById('shelfGrid').innerHTML = `
+              <div class="card" style="grid-column: 1 / -1;">
+                <p style="font-size:14px;font-weight:700;margin-bottom:6px;">Open via a local server or GitHub Pages</p>
+                <p style="font-size:13px;color:#57534E;">
+                  Your browser blocked loading <code>volumes.json</code> directly from <code>file://</code>.
+                  Run <code>python3 -m http.server</code> in this folder (or open the GitHub Pages URL) to browse volumes.
+                </p>
+              </div>
+            `;
+          });
+      }
+
+      loadLibrary();
+      window.addEventListener('pageshow', (e) => {
+        if (e.persisted) loadLibrary();
+      });
     })();
   </script>
 </body>
