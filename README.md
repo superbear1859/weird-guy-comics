@@ -17,35 +17,36 @@ weird-guy-comics/
 └── volumes/
     ├── _template/         # Starter template for new volumes
     ├── 01/index.html      # Volume #1: The Weird Guy
-    └── 02/index.html      # Volume #2: We Are in a Book!
+    ├── 02/index.html      # Volume #2: We Are in a Book!
+    └── 03/index.html      # Volume #3: It's a Bird, No, It's a Plane, No, It's the Weird Guy!
 ```
 
-## Adding a New Volume (e.g., Volume #3)
+## Adding a New Volume (e.g., Volume #4)
 
 1. **Create the volume folder** by copying the starter template:
    ```bash
-   cp -r volumes/_template volumes/03
+   cp -r volumes/_template volumes/04
    ```
-2. **Edit `volumes/03/index.html`**:
-   - Update the title, badge number (`#3`), subtitle, and `data-volume-id="03"` on the `nav.js` script tag.
+2. **Edit `volumes/04/index.html`**:
+   - Update the title, badge number (`#4`), subtitle, and `data-volume-id="04"` on the `nav.js` script tag.
    - Replace the `<script>` comic engine with your new volume's scenes/SFX (or paste your new volume's script inside the shell).
 3. **Register the volume in `volumes.json`** by appending an entry to `"volumes"`:
    ```json
    {
-     "id": "03",
-     "number": 3,
+     "id": "04",
+     "number": 4,
      "title": "Your Volume Title",
      "edition": "Edition Subtitle",
      "description": "Short summary shown on the library shelf.",
      "panels": 16,
      "duration": "1:00",
-     "path": "volumes/03/",
+     "path": "volumes/04/",
      "badgeColor": "#F472B6",
      "coverAccent": "#7C3AED",
-     "coverTag": "Vol. 3"
+     "coverTag": "Vol. 4"
    }
    ```
-4. **Commit & push to `main`** — GitHub Pages updates automatically, and the library shelf + Previous/Next volume navigation on all existing volumes will pick up Volume #3 automatically.
+4. **Commit & push to `main`** — GitHub Pages updates automatically, and the library shelf + Previous/Next volume navigation on all existing volumes will pick up Volume #4 automatically.
 
 ## Local Preview
 

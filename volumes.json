@@ -30,6 +30,19 @@
       "badgeColor": "#38BDF8",
       "coverAccent": "#EA580C",
       "coverTag": "Vol. 2"
+    },
+    {
+      "id": "03",
+      "number": 3,
+      "title": "It's a Bird, No, It's a Plane, No, It's the Weird Guy!",
+      "edition": "Notebook Edition",
+      "description": "The Weird Guy keeps blasting off across the sky, builds a jetpack to fight back, and runs into a lava bucket mishap!",
+      "panels": 16,
+      "duration": "0:54",
+      "path": "volumes/03/",
+      "badgeColor": "#FB923C",
+      "coverAccent": "#DC2626",
+      "coverTag": "Vol. 3"
     }
   ]
 }
