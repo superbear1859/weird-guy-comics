@@ -43,6 +43,19 @@
       "badgeColor": "#FB923C",
       "coverAccent": "#DC2626",
       "coverTag": "Vol. 3"
+    },
+    {
+      "id": "04",
+      "number": 4,
+      "title": "Don't Try New Things",
+      "edition": "Big, Blank Edition!",
+      "description": "Oversized new shoes send the Weird Guy tumbling into lava — and an icy water rescue floods the entire world into an ocean!",
+      "panels": 16,
+      "duration": "0:56",
+      "path": "volumes/04/",
+      "badgeColor": "#4ADE80",
+      "coverAccent": "#0284C7",
+      "coverTag": "Vol. 4"
     }
   ]
 }
