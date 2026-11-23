@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Weird Guy #6: I Don't Know What to Name the Title... — Animated Comic by superbear1859</title>
+  <link rel="stylesheet" href="../../assets/reader.css?v=2" />
+</head>
+<body>
+  <div class="wrap">
+    <nav id="seriesNav" class="series-nav" aria-label="Series navigation"></nav>
+
+    <div class="topbar">
+      <div>
+        <div class="title-row">
+          <span class="badge-num" style="background: #A78BFA;">#6</span>
+          <h1>The Weird Guy: I Don't Know What to Name the Title So Let's Just Not Name It or We Could Name It Something Very Weird...</h1>
+        </div>
+        <div class="subtitle">Blank Edition &bull; By superbear1859 &bull; Animated Comic with Cartoon SFX</div>
+      </div>
+      <div class="meta-row">
+        <span id="sceneBadge" class="pill-badge">Cover &bull; 1 / 16</span>
+        <span id="timeReadout" class="time-txt">0:00 / 0:59</span>
+      </div>
+    </div>
+
+    <div class="card stage-wrap">
+      <div class="comic-stage-shell" id="stageContainer" title="Click to Play / Pause">
+        <div id="stage" style="width:100%;height:100%;"></div>
+        <div id="playOverlay">
+          <button id="overlayPlayBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+            Watch Animated Comic #6 (with Sound!)
+          </button>
+          <span class="overlay-hint">Click anywhere or press Space</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <input id="scrubber" type="range" min="0" max="1000" value="0" step="1" aria-label="Animation timeline" />
+        <div class="btn-bar">
+          <div class="btn-group">
+            <button id="btnPlay" class="btn-primary"><span id="playIcon">&#9654;</span><span id="playLabel">Play</span></button>
+            <button id="btnRestart" class="btn-sec" title="Restart from Cover">&#8634; Restart</button>
+            <button id="btnPrev" class="btn-sec" title="Previous Panel (Left Arrow)">&#9664; Prev</button>
+            <button id="btnNext" class="btn-sec" title="Next Panel (Right Arrow)">Next &#9654;</button>
+          </div>
+          <div class="btn-group">
+            <label class="speed-lbl">Speed
+              <select id="speedSelect">
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+              </select>
+            </label>
+            <button id="btnMute" class="btn-sec" title="Toggle Sound Effects (M)">&#128266; Sound On</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="grid-head">
+        <span>Jump to Panel</span>
+        <span>Shortcuts: Space (Play) &bull; &larr;/&rarr; (Panels) &bull; M (Mute)</span>
+      </div>
+      <div id="sceneGrid"></div>
+    </div>
+
+    <div id="bottomVolNav" class="bottom-vol-nav"></div>
+  </div>
+
+  <script src="../../assets/nav.js?v=2" data-volume-id="06"></script>
+<script>
+/* ============================================================================
+ * THE WEIRD GUY #6: I Don't Know What to Name the Title So Let's Just Not Name
+ * It or We Could Name It Something Very Weird... (Blank Edition) — By superbear1859
+ * Self-Contained Hand-Drawn SVG Comic Engine + Web Audio Cartoon SFX Engine
+ * ============================================================================ */
+(function () {
+  'use strict';
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const INK = '#1E1B24';
+  const PAPER = '#FFFEFA';
+  const FONT = "'Humor Sans', 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive, sans-serif";
+
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const invLerp = (a, b, v) => clamp((v - a) / (b - a), 0, 1);
+  const easeOutCubic = t => 1 - Math.pow(1 - clamp(t), 3);
+  const easeInOutCubic = t => {
+    t = clamp(t);
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  };
+  const easeOutBack = (t, s = 1.70158) => {
+    t = clamp(t) - 1;
+    return 1 + (s + 1) * t * t * t + s * t * t;
+  };
+  const easeOutBounce = t => {
+    t = clamp(t);
+    const n1 = 7.5625, d1 = 2.75;
+    if (t < 1 / d1) return n1 * t * t;
+    if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
+    if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
+    return n1 * (t -= 2.625 / d1) * t + 0.984375;
+  };
+
+  const SCENES = [
+    { id: 'cover',   panelNum: null, title: 'Cover',             duration: 4.4 },
+    { id: 'panel1',  panelNum: 1,    title: 'Relax!!!',          duration: 3.6 },
+    { id: 'panel2',  panelNum: 2,    title: 'Nope!!! Kick!',     duration: 3.6 },
+    { id: 'panel3',  panelNum: 3,    title: 'Ouch!!!',           duration: 3.4 },
+    { id: 'panel4',  panelNum: 4,    title: 'Double Ouch!',      duration: 3.5 },
+    { id: 'panel5',  panelNum: 5,    title: 'Triple Ouch!',      duration: 3.5 },
+    { id: 'panel6',  panelNum: 6,    title: 'They Are Stuck!',   duration: 3.5 },
+    { id: 'panel7',  panelNum: 7,    title: 'Not Again!!!',      duration: 3.6 },
+    { id: 'panel8',  panelNum: 8,    title: 'Gobble! Chomp!',    duration: 3.5 },
+    { id: 'panel9',  panelNum: 9,    title: 'Flashback!!!',      duration: 3.8 },
+    { id: 'panel10', panelNum: 10,   title: "Now I'm a Poop!",   duration: 3.4 },
+    { id: 'panel11', panelNum: 11,   title: 'Later... Burp!',    duration: 3.6 },
+    { id: 'panel12', panelNum: 12,   title: 'Normal Human!',     duration: 3.9 },
+    { id: 'panel13', panelNum: 13,   title: 'Back to Present!',  duration: 3.9 },
+    { id: 'panel14', panelNum: 14,   title: 'Two Folding Chairs',duration: 3.5 },
+    { id: 'panel15', panelNum: 15,   title: 'The End',           duration: 4.4 }
+  ];
+
+  let acc = 0;
+  for (const s of SCENES) { s.start = acc; acc += s.duration; s.end = acc; }
+  const TOTAL_DURATION = acc;
+
+  const AUDIO_CUES = [
+    // Cover — cascading too-long title squishes Weird Guy!
+    { sceneIdx: 0, localT: 0.08, type: 'intro_jingle' },
+    { sceneIdx: 0, localT: 0.70, type: 'title_slam' },
+    { sceneIdx: 0, localT: 1.85, type: 'squish_squeak' },
+    { sceneIdx: 0, localT: 2.15, type: 'weird_talk', count: 6, pitch: 620 },
+    // Panel 1 — Hmmm...! What should we do!!! / Relax!!!
+    { sceneIdx: 1, localT: 0.12, type: 'narrator_talk', count: 6, pitch: 205 },
+    { sceneIdx: 1, localT: 1.25, type: 'relax_sigh' },
+    { sceneIdx: 1, localT: 1.60, type: 'weird_talk', count: 3, pitch: 520 },
+    // Panel 2 — Nope!!! + Prankster kick! + Hey!!!
+    { sceneIdx: 2, localT: 0.10, type: 'narrator_talk', count: 2, pitch: 225 },
+    { sceneIdx: 2, localT: 0.65, type: 'giggle' },
+    { sceneIdx: 2, localT: 0.85, type: 'kick_whack' },
+    { sceneIdx: 2, localT: 1.45, type: 'weird_yell', pitch: 660 },
+    // Panel 3 — Crash! Ouch!!! + falling chair
+    { sceneIdx: 3, localT: 0.15, type: 'thud' },
+    { sceneIdx: 3, localT: 0.75, type: 'weird_yell', pitch: 620 },
+    { sceneIdx: 3, localT: 1.25, type: 'fall_whistle' },
+    // Panel 4 — Double ouch!!!!!
+    { sceneIdx: 4, localT: 0.25, type: 'chair_clatter' },
+    { sceneIdx: 4, localT: 0.95, type: 'weird_talk', count: 5, pitch: 650 },
+    // Panel 5 — Triple ouch!!!
+    { sceneIdx: 5, localT: 0.20, type: 'chair_clatter' },
+    { sceneIdx: 5, localT: 0.65, type: 'squish_squeak' },
+    { sceneIdx: 5, localT: 1.15, type: 'weird_talk', count: 5, pitch: 720 },
+    // Panel 6 — They are stuck!!!
+    { sceneIdx: 6, localT: 0.30, type: 'chair_clatter' },
+    { sceneIdx: 6, localT: 1.10, type: 'weird_talk', count: 5, pitch: 590 },
+    // Panel 7 — Not again!!! (sucked into mouth!)
+    { sceneIdx: 7, localT: 0.45, type: 'suction_slurp' },
+    { sceneIdx: 7, localT: 1.20, type: 'weird_yell', pitch: 680 },
+    // Panel 8 — gobble!!! chomp!!! + Nooo!!!
+    { sceneIdx: 8, localT: 0.25, type: 'chomp_gobble' },
+    { sceneIdx: 8, localT: 1.00, type: 'chomp_gobble' },
+    { sceneIdx: 8, localT: 1.65, type: 'weird_yell', pitch: 580 },
+    // Panel 9 — Flash back!!! + Chomp! I ate poop!!!
+    { sceneIdx: 9, localT: 0.12, type: 'flashback_harp' },
+    { sceneIdx: 9, localT: 1.35, type: 'weird_talk', count: 6, pitch: 560 },
+    // Panel 10 — Now I'm a poop!!!
+    { sceneIdx: 10, localT: 0.25, type: 'poop_horn' },
+    { sceneIdx: 10, localT: 1.15, type: 'weird_talk', count: 5, pitch: 540 },
+    // Panel 11 — later... + Burp!!!
+    { sceneIdx: 11, localT: 0.12, type: 'narrator_talk', count: 3, pitch: 200 },
+    { sceneIdx: 11, localT: 1.10, type: 'mega_burp' },
+    // Panel 12 — Your burp turned you into a normal human!!!
+    { sceneIdx: 12, localT: 0.12, type: 'narrator_talk', count: 7, pitch: 210 },
+    { sceneIdx: 12, localT: 0.95, type: 'pop_human' },
+    { sceneIdx: 12, localT: 1.85, type: 'weird_talk', count: 6, pitch: 600 },
+    // Panel 13 — Back to the present!!! + turning into two folding chairs!!!
+    { sceneIdx: 13, localT: 0.10, type: 'present_zip' },
+    { sceneIdx: 13, localT: 0.70, type: 'chair_morph' },
+    { sceneIdx: 13, localT: 1.45, type: 'weird_talk', count: 7, pitch: 630 },
+    // Panel 14 — Two folding chairs! Nooo!!!
+    { sceneIdx: 14, localT: 0.20, type: 'chair_clatter' },
+    { sceneIdx: 14, localT: 1.05, type: 'weird_yell', pitch: 610 },
+    // Panel 15 — The End + Prankster sits on him + ouch!!!
+    { sceneIdx: 15, localT: 0.45, type: 'outro_jingle' },
+    { sceneIdx: 15, localT: 1.45, type: 'giggle' },
+    { sceneIdx: 15, localT: 1.75, type: 'thud' },
+    { sceneIdx: 15, localT: 2.15, type: 'weird_talk', count: 3, pitch: 680 }
+  ].map((c, idx) => ({ ...c, id: idx, globalT: SCENES[c.sceneIdx].start + c.localT }));
+
+  // --- SVG Primitives ---
+  const esc = str => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  function svgText(x, y, text, opts = {}) {
+    const { size = 28, weight = '700', fill = INK, anchor = 'middle', rot = 0, opacity = 1, stroke = 'none', strokeWidth = 0, letterSpacing = 0.3 } = opts;
+    if (opacity <= 0.005) return '';
+    const tf = rot ? ` transform="rotate(${rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"` : '';
+    const st = stroke !== 'none' ? ` stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" paint-order="stroke"` : '';
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" letter-spacing="${letterSpacing}" opacity="${opacity.toFixed(3)}"${st}${tf}>${esc(text)}</text>`;
+  }
+
+  function svgMultiText(x, y, lines, opts = {}) {
+    const lineH = opts.lineHeight || (opts.size || 24) * 1.18;
+    const startY = y - ((lines.length - 1) * lineH) / 2;
+    return lines.map((line, i) => svgText(x, startY + i * lineH, line, opts)).join('');
+  }
+
+  function speechBubble(opts) {
+    const { cx, cy, rx, ry, tailX, tailY, lines = [], fontSize = 22, lineHeight, fill = '#FFFFFF', stroke = INK, strokeWidth = 3.2, textColor = INK, spiky = false, scale = 1, opacity = 1, rot = 0, textRot = 0 } = opts;
+    if (opacity <= 0.005 || scale <= 0.01) return '';
+    let shape = '';
+    if (spiky) {
+      const spikes = 16, pts = [];
+      for (let i = 0; i < spikes * 2; i++) {
+        const a = (i / (spikes * 2)) * Math.PI * 2;
+        const m = i % 2 === 0 ? 1.12 : 0.88;
+        pts.push(`${(Math.cos(a) * rx * m).toFixed(1)},${(Math.sin(a) * ry * m).toFixed(1)}`);
+      }
+      let tail = '';
+      if (tailX !== undefined && tailY !== undefined) {
+        const dx = tailX - cx, dy = tailY - cy, ang = Math.atan2(dy, dx);
+        tail = `<path d="M ${(Math.cos(ang - 0.25) * rx * 0.72).toFixed(1)} ${(Math.sin(ang - 0.25) * ry * 0.72).toFixed(1)} L ${dx.toFixed(1)} ${dy.toFixed(1)} L ${(Math.cos(ang + 0.25) * rx * 0.72).toFixed(1)} ${(Math.sin(ang + 0.25) * ry * 0.72).toFixed(1)}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round"/>`;
+      }
+      shape = `${tail}<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>`;
+    } else {
+      const k = 0.55228;
+      const d = [
+        `M 0 ${(-ry).toFixed(1)}`,
+        `C ${(rx * k * 1.03).toFixed(1)} ${(-ry * 0.99).toFixed(1)}, ${(rx * 1.02).toFixed(1)} ${(-ry * k).toFixed(1)}, ${(rx * 0.99).toFixed(1)} 0`,
+        `C ${(rx * 1.01).toFixed(1)} ${(ry * k * 1.02).toFixed(1)}, ${(rx * k).toFixed(1)} ${(ry * 1.02).toFixed(1)}, 0 ${(ry * 0.99).toFixed(1)}`,
+        `C ${(-rx * k * 1.02).toFixed(1)} ${(ry * 1.01).toFixed(1)}, ${(-rx * 1.02).toFixed(1)} ${(ry * k).toFixed(1)}, ${(-rx * 0.99).toFixed(1)} 0`,
+        `C ${(-rx * 1.01).toFixed(1)} ${(-ry * k * 1.02).toFixed(1)}, ${(-rx * k).toFixed(1)} ${(-ry * 1.02).toFixed(1)}, 0 ${(-ry).toFixed(1)} Z`
+      ].join(' ');
+      let tail = '', maskPatch = '';
+      if (tailX !== undefined && tailY !== undefined) {
+        const dx = tailX - cx, dy = tailY - cy, ang = Math.atan2(dy, dx);
+        const b1x = Math.cos(ang - 0.24) * rx * 0.85, b1y = Math.sin(ang - 0.24) * ry * 0.85;
+        const b2x = Math.cos(ang + 0.24) * rx * 0.85, b2y = Math.sin(ang + 0.24) * ry * 0.85;
+        const midX = (b1x + b2x) * 0.35 + dx * 0.35, midY = (b1y + b2y) * 0.35 + dy * 0.35;
+        tail = `<path d="M ${b1x.toFixed(1)} ${b1y.toFixed(1)} Q ${midX.toFixed(1)} ${midY.toFixed(1)} ${dx.toFixed(1)} ${dy.toFixed(1)} Q ${(midX + (b2x - b1x) * 0.3).toFixed(1)} ${(midY + (b2y - b1y) * 0.3).toFixed(1)} ${b2x.toFixed(1)} ${b2y.toFixed(1)}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round"/>`;
+        maskPatch = `<path d="M ${(b1x * 0.95).toFixed(1)} ${(b1y * 0.95).toFixed(1)} L ${(dx * 0.78).toFixed(1)} ${(dy * 0.78).toFixed(1)} L ${(b2x * 0.95).toFixed(1)} ${(b2y * 0.95).toFixed(1)} Z" fill="${fill}" stroke="none"/>`;
+      }
+      shape = `${tail}<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>${maskPatch}`;
+    }
+    const innerTxt = svgMultiText(0, 6, lines, { size: fontSize, lineHeight: lineHeight || fontSize * 1.15, fill: textColor });
+    const txt = textRot ? `<g transform="rotate(${textRot})">${innerTxt}</g>` : innerTxt;
+    return `<g transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})" opacity="${opacity.toFixed(3)}">${shape}${txt}</g>`;
+  }
+
+  // Iconic Folding Chair / Folding Cot (horizontal bar + twin X-shaped folding legs!)
+  function foldingChair({ x = 300, y = 500, scale = 1, rot = 0, seatColor = '#60A5FA', legColor = '#475569', opacity = 1 }) {
+    if (opacity <= 0.005 || scale <= 0.01) return '';
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})" opacity="${opacity.toFixed(3)}">
+      <!-- Twin X-frame folding metal legs -->
+      <g stroke="${legColor}" stroke-width="5.5" stroke-linecap="round">
+        <line x1="-82" y1="0" x2="-22" y2="96"/>
+        <line x1="-18" y1="0" x2="-88" y2="96"/>
+        <line x1="18" y1="0" x2="88" y2="96"/>
+        <line x1="82" y1="0" x2="22" y2="96"/>
+      </g>
+      <g stroke="${INK}" stroke-width="2.4" stroke-linecap="round">
+        <line x1="-82" y1="0" x2="-22" y2="96"/>
+        <line x1="-18" y1="0" x2="-88" y2="96"/>
+        <line x1="18" y1="0" x2="88" y2="96"/>
+        <line x1="82" y1="0" x2="22" y2="96"/>
+      </g>
+      <!-- Pivot rivets -->
+      <circle cx="-52" cy="48" r="4.5" fill="#CBD5E1" stroke="${INK}" stroke-width="2"/>
+      <circle cx="52" cy="48" r="4.5" fill="#CBD5E1" stroke="${INK}" stroke-width="2"/>
+      <!-- Horizontal folding seat / cot rail -->
+      <rect x="-112" y="-9" width="224" height="16" rx="7" fill="${seatColor}" stroke="${INK}" stroke-width="3.6"/>
+    </g>`;
+  }
+
+  // Stink lines & Poop Pile (continuity callback to Volume #5 for Flashback Panels 10 & 11!)
+  function stinkLines({ x = 0, y = 0, count = 3, spread = 46, height = 90, t = 0, color = '#65A30D', strokeWidth = 3.2, opacity = 0.85 }) {
+    let svg = '';
+    for (let i = 0; i < count; i++) {
+      const frac = count === 1 ? 0 : (i / (count - 1)) - 0.5;
+      const sx = x + frac * spread * 2;
+      const w1 = Math.sin(t * 5.2 + i * 1.7) * 12;
+      const w2 = Math.cos(t * 4.4 + i * 2.1) * 14;
+      const h = height * (0.85 + 0.25 * (i % 2));
+      svg += `<path d="M ${sx.toFixed(1)} ${y.toFixed(1)} C ${(sx + w1).toFixed(1)} ${(y - h * 0.35).toFixed(1)}, ${(sx - w2).toFixed(1)} ${(y - h * 0.7).toFixed(1)}, ${(sx + w1 * 0.8).toFixed(1)} ${(y - h).toFixed(1)}" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" opacity="${opacity}"/>`;
+    }
+    return svg;
+  }
+
+  function poopPile({ x = 300, y = 500, scale = 1, rot = 0, t = 0, stinkCount = 3, stinkHeight = 105, opacity = 1 }) {
+    if (opacity <= 0.005 || scale <= 0.01) return '';
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})" opacity="${opacity.toFixed(3)}">
+      ${stinkLines({ x: 0, y: -62, count: stinkCount, spread: 44, height: stinkHeight, t })}
+      <ellipse cx="0" cy="24" rx="58" ry="22" fill="#92400E" stroke="${INK}" stroke-width="3.6"/>
+      <path d="M -42 12 C -46 -12, -26 -24, 0 -24 C 26 -24, 46 -12, 42 12 C 30 22, -30 22, -42 12 Z" fill="#A16207" stroke="${INK}" stroke-width="3.6" stroke-linejoin="round"/>
+      <path d="M -24 -16 C -26 -38, -10 -50, 4 -52 C 18 -54, 28 -68, 22 -78 C 12 -64, 2 -64, -4 -60 C 16 -54, 28 -36, 22 -16 C 12 -8, -12 -8, -24 -16 Z" fill="#B45309" stroke="${INK}" stroke-width="3.4" stroke-linejoin="round"/>
+    </g>`;
+  }
+
+  function weirdGuy(opts = {}) {
+    const {
+      x = 300, y = 500, scale = 1, rot = 0,
+      eyes = 'normal', mouth = 'open', arms = 'out', legs = 'stand',
+      bookProp = false, chairMorph = 0, t = 0, opacity = 1
+    } = opts;
+    if (opacity <= 0.005) return '';
+    const mouthPulse = mouth === 'yell' ? 1 + Math.sin(t * 28) * 0.09 : (mouth === 'chomp' ? 0.65 + Math.abs(Math.sin(t * 22)) * 0.65 : 1);
+    const hw = Math.sin(t * 14) * 2.5;
+
+    let bodySvg = '';
+    if (chairMorph > 0.01) {
+      const stickOp = clamp(1 - chairMorph * 1.4);
+      const chS = easeOutBack(clamp(chairMorph));
+      if (stickOp > 0.02) {
+        bodySvg += `<g opacity="${stickOp.toFixed(2)}">
+          <path d="M -5 51 Q -14 75 -22 98 M 5 51 Q 14 75 22 98" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" fill="none"/>
+          <path d="M -2 -8 C -16 -2, -16 44, 0 54 C 15 44, 15 -2, 2 -8 Z" fill="#FFF" stroke="${INK}" stroke-width="3.6"/>
+          <path d="M -11 14 L -48 22 M 11 14 L 48 18" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>
+        </g>`;
+      }
+      bodySvg += foldingChair({ x: 0, y: 12, scale: 0.92 * chS });
+    } else {
+      const torso = `<path d="M -2 -8 C -16 -2, -16 44, 0 54 C 15 44, 15 -2, 2 -8 Z" fill="#FFF" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+      let legSvg = `<path d="M -5 51 Q -14 75 -22 98 M 5 51 Q 14 75 22 98" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" fill="none"/>`;
+      if (legs === 'flail') {
+        const k = Math.sin(t * 22) * 10;
+        legSvg = `<path d="M -5 50 L ${(-30 + k).toFixed(1)} 95 M 5 50 L ${(30 - k).toFixed(1)} 92" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+      } else if (legs === 'relax') {
+        legSvg = `<path d="M -5 51 L -26 95 M 5 51 L 26 95" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+      }
+      let armSvg = `<path d="M -11 14 L -48 22 M 11 14 L 48 18" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+      if (bookProp) {
+        armSvg = `<path d="M -11 14 L -48 18 M 11 14 L 46 22" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>
+          <g transform="translate(-82 -6) rotate(-12)">
+            <rect x="0" y="0" width="38" height="44" rx="4" fill="#EDE9FE" stroke="${INK}" stroke-width="2.8"/>
+            <line x1="7" y1="12" x2="31" y2="12" stroke="#7C3AED" stroke-width="2.6"/>
+            <line x1="7" y1="22" x2="29" y2="22" stroke="#7C3AED" stroke-width="2.6"/>
+            <line x1="7" y1="32" x2="25" y2="32" stroke="#7C3AED" stroke-width="2.6"/>
+          </g>`;
+      } else if (arms === 'up') {
+        armSvg = `<path d="M -11 12 L -52 -22 M 11 12 L 52 -18" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+      } else if (arms === 'stuck') {
+        armSvg = `<path d="M -11 14 L -50 2 M 11 14 L 54 14" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+      }
+      bodySvg = `${legSvg}${torso}${armSvg}`;
+    }
+
+    const head = `<path d="M 0 -92 C 26 -93, 44 -74, 42 -48 C 43 -22, 24 -7, 0 -8 C -25 -7, -43 -23, -42 -49 C -43 -75, -24 -92, 0 -92 Z" fill="#FFF" stroke="${INK}" stroke-width="3.8" stroke-linejoin="round"/>`;
+    const hair = `<path d="M ${(-16 + hw * 0.4).toFixed(1)} -122 L -1 -91 L ${(17 + hw * 0.4).toFixed(1)} -124" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    let eyeSvg = `<path d="M -12 -75 L -11 -56 M 12 -75 L 13 -56" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+    if (eyes === 'angry') eyeSvg = `<path d="M -19 -76 L -9 -56 M 19 -76 L 9 -56 M -23 -78 L -5 -68 M 23 -78 L 5 -68" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
+    else if (eyes === 'squint') eyeSvg = `<path d="M -22 -70 L -10 -62 L -22 -54 M 22 -70 L 10 -62 L 22 -54" fill="none" stroke="${INK}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    else if (eyes === 'chill') eyeSvg = `<path d="M -20 -66 L -6 -66 M 6 -66 L 20 -66" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+
+    let mouthSvg = mouth === 'yell' || mouth === 'chomp'
+      ? `<g transform="translate(0 -34) scale(1 ${mouthPulse.toFixed(3)})"><ellipse cx="0" cy="0" rx="14" ry="20" fill="${INK}"/><ellipse cx="0" cy="10" rx="8" ry="6" fill="#DC2626" opacity="0.85"/></g>`
+      : `<ellipse cx="0" cy="-36" rx="12" ry="17" fill="${INK}"/>`;
+
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})" opacity="${opacity.toFixed(3)}">
+      ${bodySvg}${head}${hair}${eyeSvg}${mouthSvg}
+    </g>`;
+  }
+
+  function prankster({ x, y, scale = 1, rot = 0, kick = 0, t = 0 }) {
+    const bob = Math.sin(t * 8) * 2.5;
+    const legsSvg = kick > 0.01
+      ? `<path d="M -4 38 L -18 76 M 4 38 Q 34 48 ${(56 + kick * 28).toFixed(1)} ${(16 - kick * 24).toFixed(1)}" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`
+      : `<path d="M -4 38 L -20 76 M 4 38 L 20 76" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
+    return `<g transform="translate(${x.toFixed(1)} ${(y + bob).toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})">
+      ${legsSvg}
+      <ellipse cx="0" cy="18" rx="10" ry="24" fill="#FFF" stroke="${INK}" stroke-width="3.4"/>
+      <path d="M -10 10 L -38 -4 M 10 10 L 38 -2" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="0" cy="-28" r="28" fill="#FFF" stroke="${INK}" stroke-width="3.6"/>
+      <path d="M -8 -39 L -8 -24 M 8 -39 L 8 -24" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M -15 -20 Q 0 -4 15 -20" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>
+    </g>`;
+  }
+
+  // Dreamy flashback frame border (Panels 9–12!)
+  function flashbackFrame() {
+    return `<g opacity="0.55" pointer-events="none">
+      <rect x="24" y="24" width="552" height="792" rx="18" fill="none" stroke="#D97706" stroke-width="4" stroke-dasharray="14 10"/>
+    </g>`;
+  }
+
+  // Blank Edition Paper Wrapper
+  function wrapPanel(innerSvg, { panelNum = null, shakeX = 0, shakeY = 0, bg = PAPER } = {}) {
+    const badge = panelNum !== null
+      ? `<g opacity="0.78"><rect x="20" y="786" width="38" height="32" rx="7" fill="#FFF" stroke="${INK}" stroke-width="2.4"/>${svgText(39, 810, String(panelNum), { size: 21 })}</g>`
+      : '';
+    return `<svg xmlns="${NS}" viewBox="0 0 600 840" width="100%" height="100%" style="background:${bg};">
+      <defs>
+        <clipPath id="pc6"><rect x="12" y="12" width="576" height="816" rx="4"/></clipPath>
+        <pattern id="ht6" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.2" fill="#94A3B8" opacity="0.12"/></pattern>
+      </defs>
+      <rect x="0" y="0" width="600" height="840" fill="${bg}"/>
+      <rect x="12" y="12" width="576" height="816" fill="url(#ht6)"/>
+      <g clip-path="url(#pc6)"><g transform="translate(${shakeX.toFixed(1)} ${shakeY.toFixed(1)})">${innerSvg}</g></g>
+      <rect x="10" y="10" width="580" height="820" rx="6" fill="none" stroke="${INK}" stroke-width="4.2"/>
+      ${badge}
+    </svg>`;
+  }
+
+  function renderScene(sceneIdx, localT) {
+    const s = SCENES[sceneIdx];
+    const t = clamp(localT, 0, s.duration);
+    let out = '', shakeX = 0, shakeY = 0, bg = PAPER;
+
+    switch (sceneIdx) {
+      // ---------------------------------------------------------------------
+      // SCENE 0: COVER — The absurdly long title squishes Weird Guy into the bottom!
+      // ---------------------------------------------------------------------
+      case 0: {
+        const bS = easeOutBack(invLerp(0.05, 0.4, t));
+        const squishT = easeInOutCubic(invLerp(0.55, 1.95, t));
+        const guyY = lerp(555, 736, squishT);
+        const guyX = lerp(320, 488, squishT);
+        const guyRot = lerp(0, 90, squishT);
+        const guyS = lerp(1.05, 0.68, squishT);
+        const bubS = easeOutBack(invLerp(2.05, 2.55, t));
+        const aOp = invLerp(2.65, 3.15, t);
+
+        // Top badges
+        out += `<g transform="translate(76 64) scale(${bS.toFixed(3)})"><circle cx="0" cy="0" r="34" fill="#A78BFA" stroke="${INK}" stroke-width="3.6"/>${svgText(0, 11, '#6', { size: 34 })}</g>`;
+        out += `<g transform="translate(332 64) scale(${bS.toFixed(3)})"><ellipse cx="0" cy="0" rx="164" ry="32" fill="#EDE9FE" stroke="${INK}" stroke-width="3.4"/>${svgText(0, 10, 'Blank edition', { size: 30 })}</g>`;
+
+        // Giant cascading comical title filling 75% of the page!
+        const titleLines = [
+          { txt: 'The weird guy:', y: 158, size: 54, fill: INK, t0: 0.18 },
+          { txt: "I don't know what", y: 224, size: 46, fill: '#6D28D9', t0: 0.40 },
+          { txt: 'to name the title', y: 288, size: 46, fill: '#7C3AED', t0: 0.60 },
+          { txt: "so let's just not", y: 352, size: 46, fill: '#6D28D9', t0: 0.80 },
+          { txt: 'name it, or we', y: 416, size: 46, fill: '#7C3AED', t0: 1.00 },
+          { txt: 'could name it', y: 480, size: 46, fill: '#6D28D9', t0: 1.20 },
+          { txt: 'something very', y: 544, size: 48, fill: '#7C3AED', t0: 1.40 },
+          { txt: 'weird...', y: 616, size: 58, fill: '#DC2626', t0: 1.60 }
+        ];
+        for (const ln of titleLines) {
+          const op = invLerp(ln.t0, ln.t0 + 0.25, t);
+          const dy = lerp(-24, 0, easeOutCubic(op));
+          out += svgText(300, ln.y + dy, ln.txt, { size: ln.size, fill: ln.fill, opacity: op });
+        }
+
+        // Weird Guy squished flat at the bottom-right corner under the gigantic title!
+        out += weirdGuy({ x: guyX, y: guyY, scale: guyS, rot: guyRot, bookProp: true, eyes: squishT > 0.6 ? 'squint' : 'normal', mouth: 'yell', t });
+
+        // Squished wide speech bubble at bottom-left
+        out += speechBubble({
+          cx: 205, cy: 732, rx: 162, ry: 40,
+          tailX: 432, tailY: 734,
+          lines: ['The title is way too long!'],
+          fontSize: 22, scale: bubS, fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+
+        out += `<g opacity="${aOp.toFixed(3)}">
+          ${svgText(300, 808, 'By: superbear1859', { size: 22, fill: '#57534E' })}
+        </g>`;
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 1: PANEL 1 — "Hmmm...! What should we do!!!" / "Relax!!!"
+      // ---------------------------------------------------------------------
+      case 1: {
+        const chillBob = Math.sin(t * 3.5) * 3.5;
+        out += svgMultiText(300, 112, ['Hmmm...! What', 'should we do!!!'], {
+          size: 50, lineHeight: 60, fill: '#1D4ED8', opacity: invLerp(0.08, 0.45, t)
+        });
+
+        // Folding chair set up cleanly
+        out += foldingChair({ x: 300, y: 615, scale: 1.18 });
+        // Weird Guy lounging horizontally sideways on top of the folding chair!
+        out += weirdGuy({ x: 302, y: 556 + chillBob, scale: 1.12, rot: 90, eyes: 'chill', legs: 'relax', mouth: 'open', t });
+
+        out += speechBubble({
+          cx: 382, cy: 365, rx: 122, ry: 68,
+          tailX: 358, tailY: 505,
+          lines: ['Relax!!!'],
+          fontSize: 42, scale: easeOutBack(invLerp(1.35, 1.85, t)), fill: '#DCFCE7', textColor: '#15803D'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 2: PANEL 2 — "Nope!!!" + Prankster "kick!" + "Hey!!!"
+      // ---------------------------------------------------------------------
+      case 2: {
+        const kP = easeOutCubic(invLerp(0.6, 1.25, t));
+        if (t > 0.78 && t < 1.15) {
+          shakeX = Math.sin(t * 68) * 6;
+          shakeY = Math.cos(t * 62) * 5;
+        }
+
+        out += svgText(240, 122, 'Nope!!!', { size: 74, fill: '#DC2626', opacity: invLerp(0.06, 0.38, t) });
+
+        // Prankster delivering a flying kick!
+        out += prankster({ x: lerp(85, 122, kP), y: 622, scale: 1.1, kick: kP, t });
+
+        // Kicked folding chair flying up & spinning!
+        out += foldingChair({
+          x: lerp(275, 218, kP),
+          y: lerp(620, 488, kP),
+          scale: 0.92,
+          rot: lerp(0, -64, kP)
+        });
+
+        // Kick swoosh + "kick!" SFX
+        const kickS = easeOutBack(invLerp(0.75, 1.15, t));
+        if (kickS > 0.05) {
+          out += `<g opacity="${clamp(kickS).toFixed(2)}">
+            <path d="M 162 645 Q 202 615 225 572" fill="none" stroke="#F59E0B" stroke-width="5" stroke-linecap="round"/>
+            <path d="M 178 665 Q 218 640 242 600" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
+          </g>`;
+          out += `<g transform="translate(226 735) rotate(-8) scale(${kickS.toFixed(3)})">
+            ${svgText(0, 0, 'kick!', { size: 46, fill: '#EA580C', stroke: '#FFF', strokeWidth: 6 })}
+          </g>`;
+        }
+
+        // Weird Guy flipped upside-down mid-air!
+        out += weirdGuy({
+          x: lerp(335, 385, kP),
+          y: lerp(555, 565 - Math.sin(kP * Math.PI) * 75, kP),
+          scale: 1.08,
+          rot: lerp(90, 182, kP),
+          arms: 'up', legs: 'flail', eyes: 'angry', mouth: 'yell', t
+        });
+
+        out += speechBubble({
+          cx: 500, cy: 642, rx: 78, ry: 56,
+          tailX: 420, tailY: 635,
+          lines: ['Hey!!!'],
+          fontSize: 34, scale: easeOutBack(invLerp(1.35, 1.8, t)), spiky: true, fill: '#FEF9C3', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 3: PANEL 3 — Crash on floor "Ouch!!!" + Folding chair falling!
+      // ---------------------------------------------------------------------
+      case 3: {
+        const chairFall = easeInOutCubic(invLerp(0.65, 2.35, t));
+        const chY = lerp(200, 415, chairFall);
+        const chX = lerp(165, 240, chairFall);
+        const chRot = lerp(-52, -32, chairFall);
+
+        // Falling folding chair with speed lines above!
+        out += `<g stroke="${INK}" stroke-width="3.6" stroke-linecap="round" opacity="0.65">
+          <line x1="${(chX - 65).toFixed(1)}" y1="${(chY - 125).toFixed(1)}" x2="${(chX - 25).toFixed(1)}" y2="${(chY - 68).toFixed(1)}"/>
+          <line x1="${(chX - 25).toFixed(1)}" y1="${(chY - 145).toFixed(1)}" x2="${(chX + 10).toFixed(1)}" y2="${(chY - 88).toFixed(1)}"/>
+          <line x1="${(chX + 15).toFixed(1)}" y1="${(chY - 130).toFixed(1)}" x2="${(chX + 45).toFixed(1)}" y2="${(chY - 78).toFixed(1)}"/>
+        </g>`;
+        out += foldingChair({ x: chX, y: chY, scale: 0.96, rot: chRot });
+
+        // Weird Guy splatted flat on the ground!
+        out += weirdGuy({ x: 332, y: 742, scale: 1.05, rot: -90, eyes: 'squint', mouth: 'yell', t });
+
+        out += speechBubble({
+          cx: 286, cy: 602, rx: 92, ry: 54,
+          tailX: 278, tailY: 702,
+          lines: ['Ouch!!!'],
+          fontSize: 34, scale: easeOutBack(invLerp(0.65, 1.1, t)), fill: '#FEE2E2', textColor: '#B91C1C'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 4: PANEL 4 — Chair #1 lands! "double ouch!!!!!" + Chair #2 falling!
+      // ---------------------------------------------------------------------
+      case 4: {
+        const impact = easeOutBounce(invLerp(0.05, 0.55, t));
+        const ch1Y = lerp(520, 682, impact);
+        const ch2Y = lerp(195, 365, easeInOutCubic(invLerp(0.55, 2.3, t)));
+        if (t > 0.2 && t < 0.55) {
+          shakeX = Math.sin(t * 72) * 6;
+          shakeY = Math.cos(t * 68) * 5;
+        }
+
+        // Second folding chair tumbling from above!
+        out += foldingChair({ x: 255, y: ch2Y, scale: 0.98, rot: -8, seatColor: '#38BDF8' });
+
+        // Weird Guy flat on floor + Chair #1 slammed onto him!
+        out += weirdGuy({ x: 315, y: 745, scale: 1.05, rot: -90, eyes: 'squint', mouth: 'yell', t });
+        out += foldingChair({ x: 310, y: ch1Y, scale: 1.02, rot: -4 });
+
+        // Impact squiggle above Chair #1
+        out += `<path d="M 272 628 Q 285 595 298 625 Q 312 595 325 625 Q 338 598 348 626" fill="none" stroke="#EA580C" stroke-width="4" stroke-linecap="round" opacity="${invLerp(0.25, 0.65, t).toFixed(2)}"/>`;
+
+        out += speechBubble({
+          cx: 175, cy: 558, rx: 112, ry: 72,
+          tailX: 242, tailY: 695,
+          lines: ['double', 'ouch!!!!!'],
+          fontSize: 30, scale: easeOutBack(invLerp(0.85, 1.35, t)), fill: '#FEE2E2', textColor: '#B91C1C'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 5: PANEL 5 — Both chairs stacked! Vertical "triple ouch!!!"
+      // ---------------------------------------------------------------------
+      case 5: {
+        const drop2 = easeOutBounce(invLerp(0.05, 0.55, t));
+        const ch2Y = lerp(310, 528, drop2);
+        if (t > 0.18 && t < 0.52) {
+          shakeX = Math.sin(t * 75) * 7;
+          shakeY = Math.cos(t * 70) * 6;
+        }
+
+        // Squished Weird Guy + Chair #1 + Chair #2 stacked on top!
+        out += weirdGuy({ x: 378, y: 748, scale: 1.04, rot: -90, eyes: 'squint', mouth: 'yell', t });
+        out += foldingChair({ x: 382, y: 654, scale: 1.02, rot: -8 });
+        out += foldingChair({ x: 372, y: ch2Y, scale: 1.02, rot: -12, seatColor: '#38BDF8' });
+
+        // Impact squiggle above Chair #2
+        out += `<path d="M 318 446 Q 334 398 350 444 Q 366 398 382 444" fill="none" stroke="#DC2626" stroke-width="4.5" stroke-linecap="round" opacity="${invLerp(0.25, 0.65, t).toFixed(2)}"/>`;
+
+        // Tall narrow squished vertical speech bubble (faithful to original!)
+        out += speechBubble({
+          cx: 128, cy: 552, rx: 56, ry: 172,
+          tailX: 288, tailY: 728,
+          lines: ['triple ouch!!!'],
+          fontSize: 36, textRot: -90,
+          scale: easeOutBack(invLerp(0.9, 1.4, t)),
+          fill: '#FEE2E2', textColor: '#B91C1C'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 6: PANEL 6 — Standing up, chairs tangled on arm: "They are stuck!!!"
+      // ---------------------------------------------------------------------
+      case 6: {
+        const shakeArm = Math.sin(t * 28) * 6;
+        out += weirdGuy({ x: 215, y: 585, scale: 1.15, arms: 'stuck', eyes: 'angry', mouth: 'yell', t });
+
+        // Both folding chairs tangled sideways stuck to his right hand!
+        out += `<g transform="translate(362 ${(582 + shakeArm).toFixed(1)})">
+          ${foldingChair({ x: 0, y: 0, scale: 0.92, rot: 86 })}
+          ${foldingChair({ x: 52, y: 18, scale: 0.92, rot: 95, seatColor: '#38BDF8' })}
+        </g>`;
+
+        out += speechBubble({
+          cx: 222, cy: 318, rx: 118, ry: 82,
+          tailX: 218, tailY: 446,
+          lines: ['They are', 'stuck!!!'],
+          fontSize: 34, scale: easeOutBack(invLerp(0.95, 1.45, t)), fill: '#FEF9C3', textColor: INK
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 7: PANEL 7 — Chairs getting sucked into his mouth! "Not again!!!"
+      // ---------------------------------------------------------------------
+      case 7: {
+        const pull = easeInOutCubic(invLerp(0.35, 2.2, t));
+        const chX = lerp(418, 290, pull);
+        const chY = lerp(580, 542, pull);
+        const chS = lerp(0.86, 0.56, pull);
+
+        out += weirdGuy({ x: 228, y: 585, scale: 1.15, arms: 'out', eyes: 'angry', mouth: 'yell', t });
+
+        // Suction wind streaks pulling the chairs straight into his mouth!
+        out += `<g stroke="#64748B" stroke-width="3" stroke-linecap="round" opacity="${(0.55 * pull).toFixed(2)}">
+          <line x1="360" y1="485" x2="295" y2="520"/>
+          <line x1="400" y1="548" x2="310" y2="548"/>
+          <line x1="365" y1="615" x2="298" y2="572"/>
+        </g>`;
+
+        out += `<g transform="translate(${chX.toFixed(1)} ${chY.toFixed(1)})">
+          ${foldingChair({ x: 0, y: 0, scale: chS, rot: 82 })}
+          ${foldingChair({ x: 34, y: 12, scale: chS, rot: 102, seatColor: '#38BDF8' })}
+        </g>`;
+
+        out += speechBubble({
+          cx: 356, cy: 255, rx: 132, ry: 88,
+          tailX: 264, tailY: 448,
+          lines: ['Not', 'again!!!'],
+          fontSize: 40, scale: easeOutBack(invLerp(1.05, 1.55, t)), spiky: true, fill: '#FEE2E2', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 8: PANEL 8 — "gobble!!! chomp!!!" + "Nooo!!!"
+      // ---------------------------------------------------------------------
+      case 8: {
+        const j = Math.sin(t * 34) * 3.5;
+        const gS = easeOutBack(invLerp(0.18, 0.6, t));
+        const cS = easeOutBack(invLerp(0.92, 1.35, t));
+
+        out += `<g transform="translate(265 130) rotate(-4) scale(${gS.toFixed(3)})">
+          ${svgText(0, 0, 'gobble!!!', { size: 70, fill: '#D97706', stroke: '#FFF', strokeWidth: 6 })}
+        </g>`;
+        out += `<g transform="translate(362 232) rotate(5) scale(${cS.toFixed(3)})">
+          ${svgText(0, 0, 'chomp!!!', { size: 66, fill: '#DC2626', stroke: '#FFF', strokeWidth: 6 })}
+        </g>`;
+
+        out += weirdGuy({ x: 252 + j, y: 575, scale: 1.2, arms: 'up', eyes: 'angry', mouth: 'chomp', t });
+
+        out += speechBubble({
+          cx: 462, cy: 405, rx: 102, ry: 68,
+          tailX: 312, tailY: 495,
+          lines: ['Nooo!!!'],
+          fontSize: 38, scale: easeOutBack(invLerp(1.55, 2.05, t)), fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 9: PANEL 9 — "Flash back!!!" + Spiral + "Chomp! I ate poop!!!"
+      // ---------------------------------------------------------------------
+      case 9: {
+        bg = '#FEF9E7';
+        out += flashbackFrame();
+        out += svgText(300, 106, 'Flash back!!!', { size: 60, fill: '#7C3AED', opacity: invLerp(0.06, 0.4, t) });
+
+        // Spinning hypnotic flashback spiral!
+        const spRot = (t * 140) % 360;
+        out += `<g transform="translate(295 245) rotate(${spRot.toFixed(1)})" fill="none" stroke="#7C3AED" stroke-width="4.5" stroke-linecap="round">
+          <path d="M 0 0 C 12 -10, 26 2, 20 18 C 12 36, -18 40, -32 22 C -48 0, -40 -36, -12 -48 C 24 -64, 64 -38, 68 6 C 72 52, 28 82, -20 76"/>
+        </g>`;
+
+        out += weirdGuy({ x: 242, y: 585, scale: 1.18, eyes: 'normal', mouth: 'open', t });
+
+        out += speechBubble({
+          cx: 458, cy: 452, rx: 112, ry: 92,
+          tailX: 300, tailY: 512,
+          lines: ['Chomp!', 'I ate', 'poop!!!'],
+          fontSize: 32, scale: easeOutBack(invLerp(1.25, 1.75, t)), fill: '#ECFCCB', textColor: '#4D7C0F'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 10: PANEL 10 — Flashback: "Now I'm a poop!!!"
+      // ---------------------------------------------------------------------
+      case 10: {
+        bg = '#FEF9E7';
+        out += flashbackFrame();
+        const wob = Math.sin(t * 14) * 2.5;
+        out += poopPile({ x: 242, y: 470, scale: 1.65, rot: wob, t, stinkCount: 4, stinkHeight: 135 });
+
+        out += speechBubble({
+          cx: 446, cy: 612, rx: 122, ry: 78,
+          tailX: 315, tailY: 512,
+          lines: ["Now I'm", 'a poop!!!'],
+          fontSize: 32, scale: easeOutBack(invLerp(0.95, 1.45, t)), fill: '#FEF9C3', textColor: '#92400E'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 11: PANEL 11 — Flashback: "later..." + Microscopic poop "Burp!!!"
+      // ---------------------------------------------------------------------
+      case 11: {
+        bg = '#FEF9E7';
+        out += flashbackFrame();
+        out += svgText(295, 118, 'later...', { size: 64, fill: '#6D28D9', opacity: invLerp(0.08, 0.45, t) });
+
+        // Subtle curved ground line
+        out += `<path d="M 110 618 Q 245 595 385 616" fill="none" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>`;
+
+        // Microscopic Vol. #5 poop speck!
+        const burpShake = (t > 1.05 && t < 1.85) ? Math.sin(t * 58) * 4 : 0;
+        out += poopPile({ x: 238 + burpShake, y: 595, scale: 0.34, t, stinkCount: 3, stinkHeight: 105 });
+
+        // Green burp cloud puff!
+        const burpP = easeOutCubic(invLerp(1.05, 1.7, t));
+        if (burpP > 0.02) {
+          out += `<g opacity="${(0.45 * (1 - burpP * 0.4)).toFixed(2)}" fill="#BEF264">
+            <circle cx="${lerp(245, 310, burpP).toFixed(1)}" cy="${lerp(575, 535, burpP).toFixed(1)}" r="${(14 + burpP * 22).toFixed(1)}"/>
+            <circle cx="${lerp(252, 345, burpP).toFixed(1)}" cy="${lerp(568, 495, burpP).toFixed(1)}" r="${(10 + burpP * 26).toFixed(1)}"/>
+          </g>`;
+        }
+
+        out += speechBubble({
+          cx: 432, cy: 488, rx: 112, ry: 72,
+          tailX: 262, tailY: 582,
+          lines: ['Burp!!!'],
+          fontSize: 44, scale: easeOutBack(invLerp(1.05, 1.5, t)), spiky: true, fill: '#DCFCE7', textColor: '#15803D'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 12: PANEL 12 — Flashback: "Your burp turned you into a normal human!!!"
+      // ---------------------------------------------------------------------
+      case 12: {
+        bg = '#FEF9E7';
+        out += flashbackFrame();
+        const popS = easeOutBack(invLerp(0.85, 1.45, t));
+
+        out += svgMultiText(300, 128, ['Your burp turned', 'you into a', 'normal human!!!'], {
+          size: 44, lineHeight: 54, fill: '#1D4ED8', opacity: invLerp(0.08, 0.48, t)
+        });
+
+        // Celebratory transformation sparkles!
+        if (popS > 0.2) {
+          const spR = Math.sin(t * 14) * 8;
+          out += `<g stroke="#F59E0B" stroke-width="4" stroke-linecap="round" opacity="0.85">
+            <line x1="115" y1="${(515 + spR).toFixed(1)}" x2="145" y2="${(525 + spR).toFixed(1)}"/>
+            <line x1="335" y1="${(500 - spR).toFixed(1)}" x2="365" y2="${(490 - spR).toFixed(1)}"/>
+            <line x1="130" y1="${(635 - spR).toFixed(1)}" x2="155" y2="${(625 - spR).toFixed(1)}"/>
+          </g>`;
+        }
+
+        out += weirdGuy({ x: 232, y: 615, scale: 1.15 * Math.max(0.2, popS), arms: 'up', eyes: 'normal', mouth: 'open', t });
+
+        out += speechBubble({
+          cx: 452, cy: 412, rx: 118, ry: 88,
+          tailX: 295, tailY: 525,
+          lines: ["I'm now", 'a normal', 'human!'],
+          fontSize: 30, scale: easeOutBack(invLerp(1.75, 2.25, t)), fill: '#DCFCE7', textColor: '#15803D'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 13: PANEL 13 — "Back to the present!!!" + "I'm turning into two folding chairs!!!"
+      // ---------------------------------------------------------------------
+      case 13: {
+        const morph = easeInOutCubic(invLerp(0.55, 1.75, t));
+        const wob = Math.sin(t * 28) * 3 * morph;
+
+        out += svgMultiText(300, 118, ['Back to', 'the present!!!'], {
+          size: 56, lineHeight: 64, fill: '#DC2626', opacity: invLerp(0.06, 0.42, t)
+        });
+
+        out += weirdGuy({ x: 206 + wob, y: 618, scale: 1.12, chairMorph: morph, eyes: 'angry', mouth: 'yell', t });
+
+        out += speechBubble({
+          cx: 422, cy: 418, rx: 146, ry: 112,
+          tailX: 256, tailY: 545,
+          lines: ["I'm turning", 'into two', 'folding', 'chairs!!!'],
+          fontSize: 30, scale: easeOutBack(invLerp(1.35, 1.85, t)), fill: '#FEF9C3', textColor: '#1D4ED8'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 14: PANEL 14 — Fully transformed into TWO stacked folding chairs! "Nooo!!!"
+      // ---------------------------------------------------------------------
+      case 14: {
+        const popS = easeOutBack(invLerp(0.08, 0.65, t));
+        const wob = Math.sin(t * 14) * 2.5;
+
+        out += foldingChair({ x: 295, y: 638, scale: 1.15 * popS, rot: -wob * 0.6 });
+        out += foldingChair({ x: 295, y: 492, scale: 1.15 * popS, rot: wob, seatColor: '#38BDF8' });
+
+        out += speechBubble({
+          cx: 300, cy: 230, rx: 146, ry: 88,
+          tailX: 288, tailY: 446,
+          lines: ['Nooo!!!'],
+          fontSize: 52, scale: easeOutBack(invLerp(0.95, 1.45, t)), fill: '#FEE2E2', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      // ---------------------------------------------------------------------
+      // SCENE 15: PANEL 15 — "The End" + Prankster lounging on him + "ouch!!!"
+      // ---------------------------------------------------------------------
+      case 15: {
+        const endS = easeOutBack(invLerp(0.35, 0.95, t));
+        const sitT = easeOutBounce(invLerp(1.2, 1.85, t));
+        const pY = lerp(240, 476, sitT);
+
+        out += `<g transform="translate(300 220) scale(${endS.toFixed(3)})">
+          ${svgText(0, 16, 'The End', { size: 92, fill: INK })}
+          <path d="M -165 44 Q 0 32 165 44" fill="none" stroke="#A78BFA" stroke-width="5.5" stroke-linecap="round"/>
+        </g>`;
+
+        // Two stacked Weird-Guy folding chairs at the bottom!
+        const squash = sitT > 0.85 ? 0.94 : 1;
+        out += `<g transform="translate(300 605) scale(1 ${squash.toFixed(3)})">
+          ${foldingChair({ x: 0, y: 12, scale: 1.04 })}
+          ${foldingChair({ x: 0, y: -96, scale: 1.04, seatColor: '#38BDF8' })}
+        </g>`;
+
+        // Smirking Prankster chilling sideways right on top of the Weird-Guy chairs!
+        out += prankster({ x: 300, y: pY, scale: 1.05, rot: 90, t });
+
+        out += speechBubble({
+          cx: 432, cy: 736, rx: 102, ry: 52,
+          tailX: 356, tailY: 650,
+          lines: ['ouch!!!'],
+          fontSize: 34, scale: easeOutBack(invLerp(2.05, 2.55, t)), fill: '#FEE2E2', textColor: '#B91C1C'
+        });
+
+        out += svgText(300, 814, 'The Weird Guy #6  •  By superbear1859', {
+          size: 18, fill: '#475569', opacity: invLerp(2.8, 3.4, t) * 0.85
+        });
+        break;
+      }
+    }
+
+    return wrapPanel(out, { panelNum: s.panelNum, shakeX, shakeY, bg });
+  }
+
+  function timeToScene(globalT) {
+    const t = clamp(globalT, 0, TOTAL_DURATION);
+    for (let i = 0; i < SCENES.length; i++) {
+      if (t < SCENES[i].end || i === SCENES.length - 1) return { sceneIdx: i, localT: t - SCENES[i].start };
+    }
+    return { sceneIdx: 0, localT: 0 };
+  }
+
+  // =========================================================================
+  // REAL-TIME WEB AUDIO CARTOON SFX & CHATTER SYNTHESIZER
+  // =========================================================================
+  let audioCtx = null;
+  let muted = false;
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playTone(freq, dur, type = 'triangle', vol = 0.16, delay = 0) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, now);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + dur + 0.02);
+  }
+
+  function playSweep(f0, f1, dur, type = 'triangle', vol = 0.18, delay = 0) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(Math.max(20, f0), now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, f1), now + dur);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + dur + 0.02);
+  }
+
+  function playNoise(dur, vol = 0.16, filterFreq = 1200, filterType = 'bandpass', delay = 0) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime + delay;
+    const len = Math.max(1, Math.floor(audioCtx.sampleRate * dur));
+    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const flt = audioCtx.createBiquadFilter(); flt.type = filterType; flt.frequency.setValueAtTime(filterFreq, now);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(vol, now); g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    src.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+    src.start(now);
+  }
+
+  function triggerCue(cue) {
+    if (muted || !audioCtx) return;
+    const tp = cue.type;
+    if (tp === 'intro_jingle') {
+      [392, 494, 587, 784].forEach((f, i) => playTone(f, 0.16, 'triangle', 0.18, i * 0.10));
+    } else if (tp === 'outro_jingle') {
+      [[523, 0.16, 0], [494, 0.16, 0.15], [466, 0.16, 0.30], [440, 0.42, 0.45]].forEach(([f, d, dl]) => playTone(f, d, 'triangle', 0.18, dl));
+    } else if (tp === 'weird_talk') {
+      const cnt = cue.count || 5, base = cue.pitch || 560;
+      for (let i = 0; i < cnt; i++) playTone(base + (Math.random() * 150 - 55), 0.065, 'square', 0.08, i * 0.085);
+    } else if (tp === 'narrator_talk') {
+      const cnt = cue.count || 5, base = cue.pitch || 205;
+      for (let i = 0; i < cnt; i++) playTone(base + (Math.random() * 45 - 20), 0.10, 'sawtooth', 0.10, i * 0.115);
+    } else if (tp === 'weird_yell') {
+      const b = cue.pitch || 650;
+      playSweep(b * 0.85, b * 1.25, 0.28, 'square', 0.12);
+    } else if (tp === 'title_slam') {
+      for (let i = 0; i < 6; i++) playTone(220 - i * 16, 0.08, 'triangle', 0.15, i * 0.16);
+    } else if (tp === 'relax_sigh') {
+      [330, 415, 494, 659].forEach((f, i) => playTone(f, 0.32, 'sine', 0.12, i * 0.09));
+    } else if (tp === 'kick_whack') {
+      playNoise(0.14, 0.26, 950, 'bandpass');
+      playSweep(240, 880, 0.24, 'triangle', 0.20, 0.04);
+    } else if (tp === 'thud') {
+      playSweep(150, 42, 0.24, 'sine', 0.26);
+      playNoise(0.15, 0.20, 280, 'lowpass');
+    } else if (tp === 'fall_whistle') {
+      playSweep(1050, 220, 0.55, 'sine', 0.18);
+    } else if (tp === 'chair_clatter') {
+      playNoise(0.22, 0.24, 1800, 'bandpass');
+      playTone(620, 0.14, 'square', 0.11, 0.02);
+      playTone(430, 0.16, 'square', 0.11, 0.11);
+      playSweep(180, 55, 0.22, 'sine', 0.24, 0.05);
+    } else if (tp === 'squish_squeak') {
+      playSweep(520, 1280, 0.14, 'triangle', 0.18);
+      playSweep(1240, 460, 0.16, 'triangle', 0.16, 0.13);
+    } else if (tp === 'suction_slurp') {
+      playSweep(190, 960, 0.55, 'sine', 0.18);
+      playNoise(0.45, 0.14, 1400, 'bandpass', 0.05);
+    } else if (tp === 'chomp_gobble') {
+      for (let i = 0; i < 3; i++) {
+        playSweep(340, 120, 0.09, 'square', 0.13, i * 0.13);
+        playNoise(0.08, 0.18, 1200, 'bandpass', i * 0.13);
+      }
+    } else if (tp === 'flashback_harp') {
+      [523, 587, 659, 784, 880, 784, 659, 587].forEach((f, i) => playTone(f, 0.20, 'sine', 0.15, i * 0.08));
+    } else if (tp === 'poop_horn') {
+      playSweep(190, 92, 0.45, 'sawtooth', 0.20);
+      playSweep(140, 68, 0.40, 'square', 0.11, 0.04);
+    } else if (tp === 'mega_burp') {
+      playSweep(135, 62, 0.62, 'sawtooth', 0.24);
+      playSweep(110, 52, 0.58, 'square', 0.12, 0.04);
+      playNoise(0.55, 0.14, 340, 'bandpass', 0.02);
+    } else if (tp === 'pop_human') {
+      [392, 523, 659, 784, 1046].forEach((f, i) => playTone(f, 0.18, 'triangle', 0.16, i * 0.075));
+    } else if (tp === 'present_zip') {
+      playSweep(280, 1280, 0.22, 'sawtooth', 0.15);
+      playTone(880, 0.16, 'triangle', 0.14, 0.22);
+    } else if (tp === 'chair_morph') {
+      [420, 680, 510, 760].forEach((f, i) => playTone(f, 0.10, 'square', 0.10, i * 0.11));
+      playNoise(0.28, 0.16, 1700, 'bandpass', 0.10);
+    } else if (tp === 'giggle') {
+      [720, 860, 780, 960].forEach((f, i) => playTone(f, 0.075, 'triangle', 0.13, i * 0.08));
+    }
+  }
+
+  // =========================================================================
+  // PLAYER STATE & UI
+  // =========================================================================
+  const stageEl = document.getElementById('stage');
+  const sceneBadge = document.getElementById('sceneBadge');
+  const timeReadout = document.getElementById('timeReadout');
+  const scrubber = document.getElementById('scrubber');
+  const playOverlay = document.getElementById('playOverlay');
+  const btnPlay = document.getElementById('btnPlay');
+  const playIcon = document.getElementById('playIcon');
+  const playLabel = document.getElementById('playLabel');
+  const btnRestart = document.getElementById('btnRestart');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const btnMute = document.getElementById('btnMute');
+  const speedSelect = document.getElementById('speedSelect');
+  const sceneGrid = document.getElementById('sceneGrid');
+
+  let currentTime = 0, playing = false, speed = 1.0, lastFrameTs = null;
+  let firedCues = new Set(), activeSceneIdx = -1, hasInteracted = false;
+
+  SCENES.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'scene-pill';
+    btn.dataset.idx = i;
+    btn.textContent = s.panelNum === null ? 'Cover' : `${s.panelNum}. ${s.title}`;
+    btn.title = s.panelNum === null ? 'Cover' : `Panel ${s.panelNum}: ${s.title}`;
+    btn.addEventListener('click', () => {
+      ensureAudio();
+      playOverlay.style.opacity = '0';
+      playOverlay.style.pointerEvents = 'none';
+      seekTo(s.start + 0.01);
+      setPlaying(true);
+    });
+    sceneGrid.appendChild(btn);
+  });
+
+  const fmtTime = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+
+  function updateUI() {
+    const { sceneIdx, localT } = timeToScene(currentTime);
+    const s = SCENES[sceneIdx];
+    stageEl.innerHTML = renderScene(sceneIdx, localT);
+    sceneBadge.textContent = `${s.panelNum === null ? 'Cover' : 'Panel ' + s.panelNum} • ${sceneIdx + 1} / ${SCENES.length}`;
+    timeReadout.textContent = `${fmtTime(currentTime)} / ${fmtTime(TOTAL_DURATION)}`;
+    scrubber.value = Math.round((currentTime / TOTAL_DURATION) * 1000);
+    if (sceneIdx !== activeSceneIdx) {
+      activeSceneIdx = sceneIdx;
+      for (const el of sceneGrid.children) {
+        const isCur = Number(el.dataset.idx) === sceneIdx;
+        el.className = isCur ? 'scene-pill active' : 'scene-pill';
+      }
+      if (hasInteracted && window.WeirdGuyProgress) {
+        window.WeirdGuyProgress.save('06', sceneIdx, SCENES.length, currentTime >= TOTAL_DURATION - 0.1);
+      }
+    }
+  }
+
+  function seekTo(t) {
+    hasInteracted = true;
+    currentTime = clamp(t, 0, TOTAL_DURATION);
+    firedCues = new Set();
+    for (const c of AUDIO_CUES) if (c.globalT < currentTime - 0.05) firedCues.add(c.id);
+    updateUI();
+  }
+
+  function setPlaying(val) {
+    playing = val;
+    playIcon.innerHTML = playing ? '&#10074;&#10074;' : '&#9654;';
+    playLabel.textContent = playing ? 'Pause' : 'Play';
+    if (playing) {
+      hasInteracted = true;
+      ensureAudio();
+      playOverlay.style.opacity = '0';
+      playOverlay.style.pointerEvents = 'none';
+      if (currentTime >= TOTAL_DURATION - 0.05) seekTo(0);
+      lastFrameTs = performance.now();
+      requestAnimationFrame(tick);
+    }
+  }
+
+  function tick(now) {
+    if (!playing) return;
+    const dt = Math.min(0.08, (now - lastFrameTs) / 1000) * speed;
+    lastFrameTs = now;
+    currentTime = Math.min(TOTAL_DURATION, currentTime + dt);
+    for (const c of AUDIO_CUES) {
+      if (!firedCues.has(c.id) && c.globalT <= currentTime) {
+        firedCues.add(c.id);
+        triggerCue(c);
+      }
+    }
+    updateUI();
+    if (currentTime >= TOTAL_DURATION) {
+      if (window.WeirdGuyProgress) window.WeirdGuyProgress.save('06', SCENES.length - 1, SCENES.length, true);
+      setPlaying(false);
+    }
+    else requestAnimationFrame(tick);
+  }
+
+  btnPlay.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('stageContainer').addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('overlayPlayBtn').addEventListener('click', (e) => { e.stopPropagation(); setPlaying(true); });
+  btnRestart.addEventListener('click', () => { seekTo(0); setPlaying(true); });
+  btnPrev.addEventListener('click', () => seekTo(SCENES[Math.max(0, activeSceneIdx - 1)].start + 0.01));
+  btnNext.addEventListener('click', () => seekTo(SCENES[Math.min(SCENES.length - 1, activeSceneIdx + 1)].start + 0.01));
+  scrubber.addEventListener('input', () => seekTo((Number(scrubber.value) / 1000) * TOTAL_DURATION));
+  speedSelect.addEventListener('change', () => { speed = Number(speedSelect.value) || 1; });
+  btnMute.addEventListener('click', () => {
+    muted = !muted;
+    btnMute.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound On';
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+    if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+    else if (e.code === 'ArrowLeft') { e.preventDefault(); btnPrev.click(); }
+    else if (e.code === 'ArrowRight') { e.preventDefault(); btnNext.click(); }
+    else if (e.key === 'm' || e.key === 'M') { btnMute.click(); }
+  });
+
+  // Expose volume hook for assets/print.js (Fold & Staple Booklet + 32/48-card Thumb-Flipbook)
+  window.WeirdGuyVolume = {
+    id: '06',
+    number: 6,
+    title: "I Don't Know What to Name the Title So Let's Just Not Name It or We Could Name It Something Very Weird...",
+    edition: 'Blank Edition',
+    author: 'superbear1859',
+    scenes: SCENES,
+    renderScene: renderScene
+  };
+
+  // Render full cover showcase frame initially (or jump to saved #scene=N)
+  const initialScene = window.WeirdGuyProgress ? window.WeirdGuyProgress.getInitialSceneFromHash(SCENES.length) : null;
+  if (initialScene !== null && initialScene > 0) {
+    currentTime = SCENES[initialScene].start + 0.01;
+    updateUI();
+  } else {
+    currentTime = 3.6;
+    updateUI();
+    currentTime = 0;
+    scrubber.value = 0;
+    timeReadout.textContent = `0:00 / ${fmtTime(TOTAL_DURATION)}`;
+  }
+})();
+</script>
+  <script src="../../assets/print.js?v=2"></script>
+</body>
+</html>

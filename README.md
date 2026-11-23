@@ -22,7 +22,8 @@ weird-guy-comics/
     ├── 02/index.html      # Volume #2: We Are in a Book!
     ├── 03/index.html      # Volume #3: It's a Bird, No, It's a Plane, No, It's the Weird Guy!
     ├── 04/index.html      # Volume #4: Don't Try New Things
-    └── 05/index.html      # Volume #5: Poop is Yummy!!!
+    ├── 05/index.html      # Volume #5: Poop is Yummy!!!
+    └── 06/index.html      # Volume #6: I Don't Know What to Name the Title...
 ```
 
 ## Adding a New Volume (e.g., Volume #5)

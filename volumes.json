@@ -69,6 +69,19 @@
       "badgeColor": "#F472B6",
       "coverAccent": "#92400E",
       "coverTag": "Vol. 5"
+    },
+    {
+      "id": "06",
+      "number": 6,
+      "title": "I Don't Know What to Name the Title So Let's Just Not Name It or We Could Name It Something Very Weird...",
+      "edition": "Blank Edition",
+      "description": "A ridiculously long title kicks off a folding-chair disaster, a flashback explaining how a burp undid Volume #5, and a brand-new transformation!",
+      "panels": 16,
+      "duration": "0:59",
+      "path": "volumes/06/",
+      "badgeColor": "#A78BFA",
+      "coverAccent": "#7C3AED",
+      "coverTag": "Vol. 6"
     }
   ]
 }
