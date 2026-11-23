@@ -56,6 +56,19 @@
       "badgeColor": "#4ADE80",
       "coverAccent": "#0284C7",
       "coverTag": "Vol. 4"
+    },
+    {
+      "id": "05",
+      "number": 5,
+      "title": "Poop is Yummy!!!",
+      "edition": "Blank Edition!",
+      "description": "The Prankster force-feeds the Weird Guy a steaming plate of poop — turning him into poop, dodging the dunny, and getting zapped by a Giant Ray and Tiny Ray!",
+      "panels": 16,
+      "duration": "0:58",
+      "path": "volumes/05/",
+      "badgeColor": "#F472B6",
+      "coverAccent": "#92400E",
+      "coverTag": "Vol. 5"
     }
   ]
 }
