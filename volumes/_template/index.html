@@ -214,6 +214,16 @@
         else if (e.key === 'm' || e.key === 'M') { btnMute.click(); }
       });
 
+      window.WeirdGuyVolume = {
+        id: VOLUME_ID,
+        number: Number(VOLUME_ID),
+        title: 'Title Here',
+        edition: 'Edition Name',
+        author: 'superbear1859',
+        scenes: SCENES,
+        renderScene
+      };
+
       const initialScene = window.WeirdGuyProgress ? window.WeirdGuyProgress.getInitialSceneFromHash(SCENES.length) : null;
       if (initialScene !== null && initialScene > 0) {
         currentTime = SCENES[initialScene].start + 0.01;
@@ -221,5 +231,6 @@
       updateUI();
     })();
   </script>
+  <script src="../../assets/print.js?v=1"></script>
 </body>
 </html>

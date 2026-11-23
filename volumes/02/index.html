@@ -1028,6 +1028,17 @@
     else if (e.key === 'm' || e.key === 'M') { btnMute.click(); }
   });
 
+  // Expose volume hook for assets/print.js
+  window.WeirdGuyVolume = {
+    id: '02',
+    number: 2,
+    title: 'We Are in a Book!',
+    edition: 'Big, Blank Edition',
+    author: 'superbear1859',
+    scenes: SCENES,
+    renderScene
+  };
+
   // Render crisp initial cover showcase frame (or jump to saved #scene=N)
   const initialScene = window.WeirdGuyProgress ? window.WeirdGuyProgress.getInitialSceneFromHash(SCENES.length) : null;
   if (initialScene !== null && initialScene > 0) {
@@ -1042,5 +1053,6 @@
   }
 })();
 </script>
+  <script src="../../assets/print.js?v=1"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 Hand-drawn animated SVG comics with Web Audio cartoon sound effects, by superbear1859.
 
-Hosted on GitHub Pages with a zero-build static volume browser, reading progress tracking, and clean per-volume URLs.
+Hosted on GitHub Pages with a zero-build static volume browser, reading progress tracking, clean per-volume URLs, and offline browser printing for Fold & Staple booklets and physical thumb-flipbooks.
 
 ## Project Structure
 
@@ -11,9 +11,11 @@ weird-guy-comics/
 ├── index.html             # Volume browser & Continue Reading shelf
 ├── volumes.json           # Manifest listing all volumes (single source of truth)
 ├── .nojekyll              # Serves files directly on GitHub Pages without Jekyll
+├── AGENTS.md              # Agent guide, comic authoring workflow & print spec
 ├── assets/
 │   ├── reader.css         # Shared warm paper / comic theme
-│   └── nav.js             # Shared top/bottom volume nav & localStorage progress
+│   ├── nav.js             # Shared top/bottom volume nav, fullscreen & localStorage progress
+│   └── print.js           # Zero-build browser print helpers (booklet, reading PDF & thumb-flipbook)
 └── volumes/
     ├── _template/         # Starter template for new volumes
     ├── 01/index.html      # Volume #1: The Weird Guy
