@@ -68,8 +68,11 @@
   function buildBookletDocument(vol, imposed) {
     const isImposed = imposed !== false;
     const scenes = Array.isArray(vol.scenes) ? vol.scenes : [];
-    const storyCount = Math.max(0, scenes.length - 1);
-    const totalPages = Math.max(8, Math.ceil((storyCount + 4) / 4) * 4);
+    const sceneCount = scenes.length;
+    const totalPages = Math.max(4, Math.ceil(Math.max(1, sceneCount) / 4) * 4);
+    const extra = totalPages - sceneCount; // 0 for 16-scene comics -> exact 4-sheet booklet!
+    const hasInsideCredits = extra >= 2;
+    const hasBackCover = extra >= 1;
     const author = vol.author || 'superbear1859';
     const volNum = vol.number != null ? vol.number : Number(vol.id) || 1;
     const volId = pad2(vol.id != null ? vol.id : volNum);
@@ -81,10 +84,10 @@
       let inner = '';
 
       if (p === 1) {
-        inner = scenes.length > 0
+        inner = sceneCount > 0
           ? `<div class="panel-box">${renderPanelSvg(vol, 0, showcaseTime(scenes[0]))}</div>`
           : '';
-      } else if (p === 2) {
+      } else if (hasInsideCredits && p === 2) {
         inner = `
           <div class="special-card credits-card">
             <div class="credits-top">
@@ -102,10 +105,7 @@
             </div>
           </div>
         `;
-      } else if (p >= 3 && p <= 2 + storyCount) {
-        const sIdx = p - 2;
-        inner = `<div class="panel-box">${renderPanelSvg(vol, sIdx, showcaseTime(scenes[sIdx]))}</div>`;
-      } else if (p === totalPages) {
+      } else if (hasBackCover && p === totalPages) {
         inner = `
           <div class="special-card back-cover">
             <div class="back-top">
@@ -129,21 +129,13 @@
           </div>
         `;
       } else {
-        inner = `
-          <div class="special-card sketch-card">
-            <div class="sketch-head">
-              <span class="sketch-kicker">BONUS SKETCH PAGE</span>
-              <h2 class="sketch-title">Draw Your Own Scene!</h2>
-            </div>
-            <div class="sketch-grid"></div>
-            <div class="sketch-foot">
-              <span>Title: ______________________________________</span>
-            </div>
-          </div>
-        `;
+        const sIdx = hasInsideCredits ? p - 2 : p - 1;
+        if (sIdx >= 1 && sIdx < sceneCount) {
+          inner = `<div class="panel-box">${renderPanelSvg(vol, sIdx, showcaseTime(scenes[sIdx]))}</div>`;
+        }
       }
 
-      const folio = (p >= 3 && p <= totalPages - 1)
+      const folio = (p >= 2 && p <= totalPages - 1 && !(hasInsideCredits && p === 2))
         ? `<div class="folio">${p}</div>`
         : '';
 
@@ -180,12 +172,13 @@
       bodyMarkup = pages.join('\n');
     }
 
+    const physicalSheets = totalPages / 4;
     const modeTitle = isImposed
-      ? `Fold & Staple Booklet (${totalPages / 2} sides / ${totalPages / 4} sheets)`
+      ? `Fold & Staple Booklet (${physicalSheets} ${physicalSheets === 1 ? 'sheet' : 'sheets'} double-sided, no cutting!)`
       : `Reading PDF (${totalPages} Half-Letter pages)`;
 
     const bannerHint = isImposed
-      ? 'Print Settings: US Letter &bull; <strong>Landscape</strong> &bull; Scale <strong>100%</strong> &bull; <strong>Double-Sided (Flip on Short Edge)</strong> &bull; Fold in half &amp; staple along center dots.'
+      ? '<strong>No cutting needed!</strong> Print on US Letter &bull; <strong>Landscape</strong> &bull; Scale <strong>100%</strong> &bull; <strong>Double-Sided (Flip on Short Edge)</strong> &bull; Stack, fold in half &amp; staple along center dots.'
       : 'Print Settings: Half-Letter <strong>5.5&quot; &times; 8.5&quot;</strong> sequential PDF &bull; Save as PDF for <strong>FedEx Office</strong> or <strong>Mixam</strong> saddle-stitch printing.';
 
     const pageRule = isImposed
@@ -365,41 +358,6 @@
       line-height: 1.45;
       border-top: 1.5px dashed #CBD5E1;
       padding-top: 10px;
-    }
-
-    /* Bonus Sketch Pages */
-    .sketch-card {
-      background: #FFFEFA;
-      gap: 10px;
-    }
-    .sketch-head { text-align: center; }
-    .sketch-kicker {
-      display: inline-block;
-      font-size: 8.5pt;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      color: #2563EB;
-      text-transform: uppercase;
-    }
-    .sketch-title {
-      font-family: ${COMIC_FONT};
-      font-size: 16pt;
-      font-weight: 800;
-      margin-top: 2px;
-    }
-    .sketch-grid {
-      flex: 1;
-      border: 2px dashed #94A3B8;
-      border-radius: 6px;
-      background-color: #FFFFFF;
-      background-image: radial-gradient(#CBD5E1 1.1px, transparent 1.1px);
-      background-size: 14px 14px;
-    }
-    .sketch-foot {
-      font-family: ${COMIC_FONT};
-      font-size: 10.5pt;
-      color: #475569;
-      padding-top: 2px;
     }
 
     /* Back Cover */
@@ -974,12 +932,12 @@
 
     card.innerHTML = `
       <div class="grid-head">
-        <span><strong>Print It!</strong> Fold &amp; Staple Comic or Physical Thumb-Flipbook</span>
+        <span><strong>Print It!</strong> Fold &amp; Staple Comic (No Cutting!) or Thumb-Flipbook</span>
         <span>Works offline &bull; Vector PDF via browser Print</span>
       </div>
       <div class="btn-bar">
         <div class="btn-group">
-          <button id="wgPrintBooklet" type="button" class="btn-primary">&#128424; Print Fold &amp; Staple Booklet</button>
+          <button id="wgPrintBooklet" type="button" class="btn-primary" title="Double-sided US Letter (4 sheets), fold in half &amp; staple — no cutting required!">&#128424; Fold &amp; Staple Booklet (No Cutting)</button>
           <button id="wgPrintReading" type="button" class="btn-sec" title="Sequential 5.5x8.5 pages for FedEx Office or Mixam">Reading PDF (FedEx/Mixam)</button>
         </div>
         <div class="btn-group">

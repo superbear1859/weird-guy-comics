@@ -41,7 +41,7 @@ When the user provides photos of a new hand-drawn comic volume, move straight to
    - If the panels are legible, proceed directly to building the volume and list 1–2 tiny handwriting double-checks at the end of your reply rather than blocking upfront.
    - Gently fix clear spelling typos (e.g., `Finaly` → `Finally`, `firey` → `fiery`), while preserving signature comic SFX and capitalization (`zoing!!!`, `Arggh!!!`, `CLONK!!!`, `POOOOP!!!!`, `Bleh!!!`, `Blek!!!`).
 2. **Scaffold from `volumes/_template/index.html`**:
-   - Create `volumes/<NN>/index.html` using the shared shell (`../../assets/reader.css?v=2`, `../../assets/nav.js?v=2` with `data-volume-id="<NN>"`, and `../../assets/print.js?v=1`).
+   - Create `volumes/<NN>/index.html` using the shared shell (`../../assets/reader.css?v=2`, `../../assets/nav.js?v=2` with `data-volume-id="<NN>"`, and `../../assets/print.js?v=2`).
    - Do **not** include external Tailwind or font CDNs.
 3. **Match the source paper & visual style**:
    - **Notebook Edition** (like Vol. 1 & 3): ruled blue notebook lines, red margin line, and binder punch holes.
@@ -92,9 +92,10 @@ When the user provides photos of a new hand-drawn comic volume, move straight to
     renderScene: renderScene
   };
   ```
-  and load `<script src="../../assets/print.js?v=1"></script>` before `</body>`.
+  and load `<script src="../../assets/print.js?v=2"></script>` before `</body>`.
 - **Booklet PDFs (`buildBookletDocument(vol, imposed)`)**:
-  - **Fold & Staple Booklet (`imposed = true`)**: US Letter Landscape (`11in × 8.5in`), saddle-stitch imposed spreads (20 pages = 10 sides / 5 double-sided sheets for 16-scene volumes), with center fold ticks, staple dots, inside-front credits (p.2), bonus dotted sketch pages for any 4-page padding, and back cover (last page).
+  - **No bonus sketch pages**: For standard 16-scene volumes (Cover + Panels 1–15), the booklet is an exact **16-page** book (Page 1 = Cover, Pages 2–16 = Panels 1–15 ending with "The End" on the back). If a volume's scene count is not a multiple of 4, only the minimal 1–2 credits/back-cover pages needed to reach a multiple of 4 are added — never filler sketch pages.
+  - **Fold & Staple Booklet (`imposed = true`)**: US Letter Landscape (`11in × 8.5in`), saddle-stitch imposed spreads (**16 pages = 8 sides / 4 double-sided sheets** for 16-scene volumes) — print double-sided (Flip on Short Edge), fold in half, and staple along the center marks with **zero cutting required**.
   - **Reading PDF (`imposed = false`)**: Sequential Half-Letter (`5.5in × 8.5in`) vector PDF ready for FedEx Office or Mixam.
 - **Physical Thumb-Flipbooks (`buildFlipbookDocument(vol, opts)`)**:
   - US Letter Portrait (`8.5in × 11in`), 8-up grid of `3.86in × 2.46in` cut-out cards.
