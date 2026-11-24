@@ -82,6 +82,45 @@
       "badgeColor": "#A78BFA",
       "coverAccent": "#7C3AED",
       "coverTag": "Vol. 6"
+    },
+    {
+      "id": "07",
+      "number": 7,
+      "title": "Folding Chairs Are Weird Too!",
+      "edition": "Blank Edition!!!",
+      "description": "Still stuck as two folding chairs, the Weird Guy asks for help — only for chaotic magic spells to turn him into six folding chairs, a tiny stack, and three stacked Weird Guys!",
+      "panels": 16,
+      "duration": "0:58",
+      "path": "volumes/07/",
+      "badgeColor": "#2DD4BF",
+      "coverAccent": "#0F766E",
+      "coverTag": "Vol. 7"
+    },
+    {
+      "id": "08",
+      "number": 8,
+      "title": "I Once Saw a Poop and Found a Guy Who Said: I Once Saw a Poop and Found a Guy Who Said: I Once Found a Poop and a Guy...",
+      "edition": "Blank Edition!!!",
+      "description": "Another ridiculously long title gets the Weird Guy zoinged into a pit of pee, zapped into a stinky pee ocean, shrunk tiny, and rescued by the Normal Human Ray!",
+      "panels": 16,
+      "duration": "0:58",
+      "path": "volumes/08/",
+      "badgeColor": "#FDE047",
+      "coverAccent": "#CA8A04",
+      "coverTag": "Vol. 8"
+    },
+    {
+      "id": "09",
+      "number": 9,
+      "title": "Poop!!!",
+      "edition": "Blank Edition!!!",
+      "description": "Multiplying poop piles force a Super Gobble Chomp, a giant-human transformation, a flaming folding-chair ambush, and a burnt-butt cliffhanger!",
+      "panels": 16,
+      "duration": "0:58",
+      "path": "volumes/09/",
+      "badgeColor": "#FB7185",
+      "coverAccent": "#BE123C",
+      "coverTag": "Vol. 9"
     }
   ]
 }

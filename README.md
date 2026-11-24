@@ -23,7 +23,10 @@ weird-guy-comics/
     ├── 03/index.html      # Volume #3: It's a Bird, No, It's a Plane, No, It's the Weird Guy!
     ├── 04/index.html      # Volume #4: Don't Try New Things
     ├── 05/index.html      # Volume #5: Poop is Yummy!!!
-    └── 06/index.html      # Volume #6: I Don't Know What to Name the Title...
+    ├── 06/index.html      # Volume #6: I Don't Know What to Name the Title...
+    ├── 07/index.html      # Volume #7: Folding Chairs Are Weird Too!
+    ├── 08/index.html      # Volume #8: I Once Saw a Poop and Found a Guy Who Said...
+    └── 09/index.html      # Volume #9: Poop!!!
 ```
 
 ## Adding a New Volume (e.g., Volume #5)
