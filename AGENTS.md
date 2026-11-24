@@ -51,7 +51,7 @@ When the user provides photos of a new hand-drawn comic volume, move straight to
      - Paper `#FFFEFA`, Ink `#1E1B24`
      - Font stack: `'Humor Sans', 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive, sans-serif`
 4. **Preserve recurring characters & series continuity**:
-   - Keep visual consistency for **The Weird Guy** (oval head, twin V-shaped hair tuft, bean torso, expressive eyes/mouth), the off-screen **Narrator** (blue/red top captions), the smirking **Prankster** (dropping buckets/pranks), and recurring gags (giant erasers, lava, ultra cold water, cartoon explosions, etc.).
+   - Keep visual consistency for **The Weird Guy** (oval head, iconic V-shaped **angry eyebrows** extending above his forehead — *not* hair, so don't add a second set of eyebrows on top of them, bean torso, expressive vertical eyes & open oval mouth), the off-screen **Narrator** (blue/red top captions), the smirking **Prankster** (dropping buckets/pranks), and recurring gags (giant erasers, lava, ultra cold water, folding chairs, Giant/Tiny/Normal Human rays, cartoon explosions, etc.).
 5. **Deterministic animation engine**:
    - Implement a pure, deterministic `renderScene(sceneIdx, localT)` function so scrubbing, chapter jumping, and print/flipbook frame sampling all render reproducibly.
    - Target ~55–65 seconds total runtime across the Cover + story panels.
