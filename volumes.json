@@ -121,6 +121,19 @@
       "badgeColor": "#FB7185",
       "coverAccent": "#BE123C",
       "coverTag": "Vol. 9"
+    },
+    {
+      "id": "10",
+      "number": 10,
+      "title": "Let's Time Travel!!!",
+      "edition": "Blank Edition!!!",
+      "description": "Zapped into the future by a Time Travel Ray, the Weird Guy faces a Robo-Prankster, a TNT Boomerang, a pile of ash that can't play Minecraft, and a giant-butt barf ocean!",
+      "panels": 16,
+      "duration": "0:59",
+      "path": "volumes/10/",
+      "badgeColor": "#22D3EE",
+      "coverAccent": "#0891B2",
+      "coverTag": "Vol. 10"
     }
   ]
 }

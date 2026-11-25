@@ -292,7 +292,7 @@
     const head = `<path d="M 0 -92 C 26 -93, 44 -74, 42 -48 C 43 -22, 24 -7, 0 -8 C -25 -7, -43 -23, -42 -49 C -43 -75, -24 -92, 0 -92 Z" fill="#FFF" stroke="${INK}" stroke-width="3.8" stroke-linejoin="round"/>`;
     const hair = `<path d="M ${(-16 + hw * 0.4).toFixed(1)} -122 L -1 -91 L ${(17 + hw * 0.4).toFixed(1)} -124" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>`;
     let eyeSvg = `<path d="M -12 -75 L -11 -56 M 12 -75 L 13 -56" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
-    if (eyes === 'angry') eyeSvg = `<path d="M -19 -76 L -9 -56 M 19 -76 L 9 -56 M -23 -78 L -5 -68 M 23 -78 L 5 -68" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
+    if (eyes === 'angry') eyeSvg = `<path d="M -14 -76 L -12 -55 M 14 -76 L 12 -55" stroke="${INK}" stroke-width="4.2" stroke-linecap="round"/>`;
     const mouthSvg = mouth === 'yell'
       ? `<g transform="translate(0 -34) scale(1 ${mouthPulse.toFixed(3)})"><ellipse cx="0" cy="0" rx="14" ry="20" fill="${INK}"/><ellipse cx="0" cy="10" rx="8" ry="6" fill="#DC2626" opacity="0.85"/></g>`
       : `<ellipse cx="0" cy="-36" rx="12" ry="17" fill="${INK}"/>`;

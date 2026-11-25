@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Weird Guy #10: Let's Time Travel!!! — Animated Comic by superbear1859</title>
+  <link rel="stylesheet" href="../../assets/reader.css?v=2" />
+</head>
+<body>
+  <div class="wrap">
+    <nav id="seriesNav" class="series-nav" aria-label="Series navigation"></nav>
+
+    <div class="topbar">
+      <div>
+        <div class="title-row">
+          <span class="badge-num" style="background: #22D3EE;">#10</span>
+          <h1>The Weird Guy: Let's Time Travel!!!</h1>
+        </div>
+        <div class="subtitle">Blank Edition!!! &bull; By superbear1859 &bull; Animated Comic with Cartoon SFX</div>
+      </div>
+      <div class="meta-row">
+        <span id="sceneBadge" class="pill-badge">Cover &bull; 1 / 16</span>
+        <span id="timeReadout" class="time-txt">0:00 / 0:59</span>
+      </div>
+    </div>
+
+    <div class="card stage-wrap">
+      <div class="comic-stage-shell" id="stageContainer" title="Click to Play / Pause">
+        <div id="stage" style="width:100%;height:100%;"></div>
+        <div id="playOverlay">
+          <button id="overlayPlayBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+            Watch Animated Comic #10 (with Sound!)
+          </button>
+          <span class="overlay-hint">Click anywhere or press Space</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <input id="scrubber" type="range" min="0" max="1000" value="0" step="1" aria-label="Animation timeline" />
+        <div class="btn-bar">
+          <div class="btn-group">
+            <button id="btnPlay" class="btn-primary"><span id="playIcon">&#9654;</span><span id="playLabel">Play</span></button>
+            <button id="btnRestart" class="btn-sec" title="Restart from Cover">&#8634; Restart</button>
+            <button id="btnPrev" class="btn-sec" title="Previous Panel (Left Arrow)">&#9664; Prev</button>
+            <button id="btnNext" class="btn-sec" title="Next Panel (Right Arrow)">Next &#9654;</button>
+          </div>
+          <div class="btn-group">
+            <label class="speed-lbl">Speed
+              <select id="speedSelect">
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+              </select>
+            </label>
+            <button id="btnMute" class="btn-sec" title="Toggle Sound Effects (M)">&#128266; Sound On</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="grid-head">
+        <span>Jump to Panel</span>
+        <span>Shortcuts: Space (Play) &bull; &larr;/&rarr; (Panels) &bull; M (Mute)</span>
+      </div>
+      <div id="sceneGrid"></div>
+    </div>
+
+    <div id="bottomVolNav" class="bottom-vol-nav"></div>
+  </div>
+
+  <script src="../../assets/nav.js?v=2" data-volume-id="10"></script>
+<script>
+/* ============================================================================
+ * THE WEIRD GUY #10: Let's Time Travel!!! (Blank Edition!!!) — By superbear1859
+ * Self-Contained Hand-Drawn SVG Comic Engine + Web Audio Cartoon SFX Engine
+ * ============================================================================ */
+(function () {
+  'use strict';
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const INK = '#1E1B24';
+  const PAPER = '#FFFEFA';
+  const FONT = "'Humor Sans', 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive, sans-serif";
+
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const invLerp = (a, b, v) => clamp((v - a) / (b - a), 0, 1);
+  const easeOutCubic = t => 1 - Math.pow(1 - clamp(t), 3);
+  const easeInOutCubic = t => {
+    t = clamp(t);
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  };
+  const easeOutBack = (t, s = 1.70158) => {
+    t = clamp(t) - 1;
+    return 1 + (s + 1) * t * t * t + s * t * t;
+  };
+
+  const SCENES = [
+    { id: 'cover',   panelNum: null, title: 'Cover',               duration: 4.0 },
+    { id: 'panel1',  panelNum: 1,    title: 'Time Travel Ray!',    duration: 3.7 },
+    { id: 'panel2',  panelNum: 2,    title: 'In the Future!!!',    duration: 4.0 },
+    { id: 'panel3',  panelNum: 3,    title: 'Boom!!!',             duration: 3.3 },
+    { id: 'panel4',  panelNum: 4,    title: 'I Blew Up!!!',        duration: 3.8 },
+    { id: 'panel5',  panelNum: 5,    title: 'Mmmfff!!!',           duration: 3.3 },
+    { id: 'panel6',  panelNum: 6,    title: 'Ahhh!!!',             duration: 3.2 },
+    { id: 'panel7',  panelNum: 7,    title: 'Ash! Arggghh!',       duration: 3.5 },
+    { id: 'panel8',  panelNum: 8,    title: 'No Minecraft!!!',     duration: 3.9 },
+    { id: 'panel9',  panelNum: 9,    title: 'Help!!!',             duration: 3.2 },
+    { id: 'panel10', panelNum: 10,   title: 'Okay!!!',             duration: 3.1 },
+    { id: 'panel11', panelNum: 11,   title: 'Big Butt Spell!',     duration: 3.8 },
+    { id: 'panel12', panelNum: 12,   title: 'Tiny + Giant Butt!',  duration: 4.0 },
+    { id: 'panel13', panelNum: 13,   title: 'Notice the Butt!',    duration: 3.9 },
+    { id: 'panel14', panelNum: 14,   title: 'Barf Ocean!!!',       duration: 4.1 },
+    { id: 'panel15', panelNum: 15,   title: 'The End',             duration: 4.5 }
+  ];
+
+  let acc = 0;
+  for (const s of SCENES) { s.start = acc; acc += s.duration; s.end = acc; }
+  const TOTAL_DURATION = acc;
+
+  const AUDIO_CUES = [
+    { sceneIdx: 0, localT: 0.08, type: 'intro_jingle' },
+    { sceneIdx: 0, localT: 1.35, type: 'weird_yell', pitch: 620 },
+    { sceneIdx: 1, localT: 0.10, type: 'evil_laugh' },
+    { sceneIdx: 1, localT: 0.75, type: 'time_zap' },
+    { sceneIdx: 1, localT: 1.55, type: 'weird_yell', pitch: 660 },
+    { sceneIdx: 2, localT: 0.12, type: 'future_synth' },
+    { sceneIdx: 2, localT: 1.10, type: 'jet_hover' },
+    { sceneIdx: 2, localT: 1.65, type: 'rage_arggh' },
+    { sceneIdx: 3, localT: 0.20, type: 'mega_boom' },
+    { sceneIdx: 4, localT: 0.25, type: 'jet_zoom' },
+    { sceneIdx: 4, localT: 0.75, type: 'fire_roar' },
+    { sceneIdx: 4, localT: 1.35, type: 'weird_talk', count: 6, pitch: 620 },
+    { sceneIdx: 5, localT: 0.25, type: 'fire_roar' },
+    { sceneIdx: 5, localT: 1.00, type: 'muffled_mmmfff' },
+    { sceneIdx: 6, localT: 0.20, type: 'fire_roar' },
+    { sceneIdx: 6, localT: 0.90, type: 'weird_yell', pitch: 740 },
+    { sceneIdx: 7, localT: 0.25, type: 'ash_puff' },
+    { sceneIdx: 7, localT: 1.00, type: 'rage_arggh' },
+    { sceneIdx: 8, localT: 0.30, type: 'game_blip' },
+    { sceneIdx: 8, localT: 1.15, type: 'weird_talk', count: 7, pitch: 560 },
+    { sceneIdx: 9, localT: 0.75, type: 'weird_yell', pitch: 640 },
+    { sceneIdx: 10, localT: 0.15, type: 'narrator_talk', count: 3, pitch: 210 },
+    { sceneIdx: 11, localT: 0.10, type: 'narrator_talk', count: 8, pitch: 215 },
+    { sceneIdx: 11, localT: 1.15, type: 'magic_poof' },
+    { sceneIdx: 12, localT: 0.12, type: 'narrator_talk', count: 4, pitch: 210 },
+    { sceneIdx: 12, localT: 0.85, type: 'shrink_whistle' },
+    { sceneIdx: 12, localT: 1.45, type: 'weird_talk', count: 5, pitch: 820 },
+    { sceneIdx: 12, localT: 2.35, type: 'poop_horn' },
+    { sceneIdx: 13, localT: 0.35, type: 'barf_blek' },
+    { sceneIdx: 13, localT: 1.45, type: 'narrator_talk', count: 5, pitch: 215 },
+    { sceneIdx: 14, localT: 0.12, type: 'narrator_talk', count: 7, pitch: 205 },
+    { sceneIdx: 14, localT: 0.75, type: 'ocean_wave' },
+    { sceneIdx: 14, localT: 1.55, type: 'weird_yell', pitch: 620 },
+    { sceneIdx: 15, localT: 0.50, type: 'outro_jingle' },
+    { sceneIdx: 15, localT: 1.65, type: 'underwater_bubbles' },
+    { sceneIdx: 15, localT: 2.05, type: 'weird_talk', count: 6, pitch: 540 }
+  ].map((c, idx) => ({ ...c, id: idx, globalT: SCENES[c.sceneIdx].start + c.localT }));
+
+  // --- SVG Primitives ---
+  const esc = str => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  function svgText(x, y, text, opts = {}) {
+    const { size = 28, weight = '700', fill = INK, anchor = 'middle', rot = 0, opacity = 1, stroke = 'none', strokeWidth = 0, letterSpacing = 0.3 } = opts;
+    if (opacity <= 0.005) return '';
+    const tf = rot ? ` transform="rotate(${rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"` : '';
+    const st = stroke !== 'none' ? ` stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" paint-order="stroke"` : '';
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" letter-spacing="${letterSpacing}" opacity="${opacity.toFixed(3)}"${st}${tf}>${esc(text)}</text>`;
+  }
+
+  function svgMultiText(x, y, lines, opts = {}) {
+    const lineH = opts.lineHeight || (opts.size || 24) * 1.18;
+    const startY = y - ((lines.length - 1) * lineH) / 2;
+    return lines.map((line, i) => svgText(x, startY + i * lineH, line, opts)).join('');
+  }
+
+  function speechBubble(opts) {
+    const { cx, cy, rx, ry, tailX, tailY, lines = [], fontSize = 22, lineHeight, fill = '#FFFFFF', stroke = INK, strokeWidth = 3.2, textColor = INK, spiky = false, scale = 1, opacity = 1, rot = 0 } = opts;
+    if (opacity <= 0.005 || scale <= 0.01) return '';
+    let shape = '';
+    if (spiky) {
+      const spikes = 16, pts = [];
+      for (let i = 0; i < spikes * 2; i++) {
+        const a = (i / (spikes * 2)) * Math.PI * 2;
+        const m = i % 2 === 0 ? 1.12 : 0.88;
+        pts.push(`${(Math.cos(a) * rx * m).toFixed(1)},${(Math.sin(a) * ry * m).toFixed(1)}`);
+      }
+      let tail = '';
+      if (tailX !== undefined && tailY !== undefined) {
+        const dx = tailX - cx, dy = tailY - cy, ang = Math.atan2(dy, dx);
+        tail = `<path d="M ${(Math.cos(ang - 0.25) * rx * 0.72).toFixed(1)} ${(Math.sin(ang - 0.25) * ry * 0.72).toFixed(1)} L ${dx.toFixed(1)} ${dy.toFixed(1)} L ${(Math.cos(ang + 0.25) * rx * 0.72).toFixed(1)} ${(Math.sin(ang + 0.25) * ry * 0.72).toFixed(1)}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round"/>`;
+      }
+      shape = `${tail}<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>`;
+    } else {
+      const k = 0.55228;
+      const d = [
+        `M 0 ${(-ry).toFixed(1)}`,
+        `C ${(rx * k * 1.03).toFixed(1)} ${(-ry * 0.99).toFixed(1)}, ${(rx * 1.02).toFixed(1)} ${(-ry * k).toFixed(1)}, ${(rx * 0.99).toFixed(1)} 0`,
+        `C ${(rx * 1.01).toFixed(1)} ${(ry * k * 1.02).toFixed(1)}, ${(rx * k).toFixed(1)} ${(ry * 1.02).toFixed(1)}, 0 ${(ry * 0.99).toFixed(1)}`,
+        `C ${(-rx * k * 1.02).toFixed(1)} ${(ry * 1.01).toFixed(1)}, ${(-rx * 1.02).toFixed(1)} ${(ry * k).toFixed(1)}, ${(-rx * 0.99).toFixed(1)} 0`,
+        `C ${(-rx * 1.01).toFixed(1)} ${(-ry * k * 1.02).toFixed(1)}, ${(-rx * k).toFixed(1)} ${(-ry * 1.02).toFixed(1)}, 0 ${(-ry).toFixed(1)} Z`
+      ].join(' ');
+      let tail = '', maskPatch = '';
+      if (tailX !== undefined && tailY !== undefined) {
+        const dx = tailX - cx, dy = tailY - cy, ang = Math.atan2(dy, dx);
+        const b1x = Math.cos(ang - 0.24) * rx * 0.85, b1y = Math.sin(ang - 0.24) * ry * 0.85;
+        const b2x = Math.cos(ang + 0.24) * rx * 0.85, b2y = Math.sin(ang + 0.24) * ry * 0.85;
+        const midX = (b1x + b2x) * 0.35 + dx * 0.35, midY = (b1y + b2y) * 0.35 + dy * 0.35;
+        tail = `<path d="M ${b1x.toFixed(1)} ${b1y.toFixed(1)} Q ${midX.toFixed(1)} ${midY.toFixed(1)} ${dx.toFixed(1)} ${dy.toFixed(1)} Q ${(midX + (b2x - b1x) * 0.3).toFixed(1)} ${(midY + (b2y - b1y) * 0.3).toFixed(1)} ${b2x.toFixed(1)} ${b2y.toFixed(1)}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round"/>`;
+        maskPatch = `<path d="M ${(b1x * 0.95).toFixed(1)} ${(b1y * 0.95).toFixed(1)} L ${(dx * 0.78).toFixed(1)} ${(dy * 0.78).toFixed(1)} L ${(b2x * 0.95).toFixed(1)} ${(b2y * 0.95).toFixed(1)} Z" fill="${fill}" stroke="none"/>`;
+      }
+      shape = `${tail}<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>${maskPatch}`;
+    }
+    const txt = svgMultiText(0, 6, lines, { size: fontSize, lineHeight: lineHeight || fontSize * 1.15, fill: textColor });
+    return `<g transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})" opacity="${opacity.toFixed(3)}">${shape}${txt}</g>`;
+  }
+
+  function handArrow(x1, y1, x2, y2, cx, cy, color = INK) {
+    const ang = Math.atan2(y2 - cy, x2 - cx), len = 13;
+    return `<g stroke="${color}" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}"/>
+      <path d="M ${(x2 - Math.cos(ang - 0.5) * len).toFixed(1)} ${(y2 - Math.sin(ang - 0.5) * len).toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)} L ${(x2 - Math.cos(ang + 0.5) * len).toFixed(1)} ${(y2 - Math.sin(ang + 0.5) * len).toFixed(1)}"/>
+    </g>`;
+  }
+
+  // Weird Guy — canonical V-shaped ANGRY EYEBROWS (no duplicate eyebrows!)
+  function weirdGuy(opts = {}) {
+    const {
+      x = 300, y = 500, scale = 1, rot = 0,
+      eyes = 'normal', mouth = 'open', arms = 'out',
+      comicProp = false, bigButt = false, t = 0, opacity = 1
+    } = opts;
+    if (opacity <= 0.005) return '';
+    const mouthPulse = mouth === 'yell' ? 1 + Math.sin(t * 28) * 0.09 : 1;
+    const hw = Math.sin(t * 14) * 2.5;
+
+    const buttSvg = bigButt ? `<g transform="translate(8 36) scale(1.38)">
+      <path d="M 0 -22 C 36 -30, 62 -12, 54 6 C 48 16, 36 16, 28 10 C 44 22, 48 42, 26 48 C 6 52, -4 34, -2 20 Z"
+            fill="#FFFFFF" stroke="${INK}" stroke-width="3.2" stroke-linejoin="round"/>
+    </g>` : '';
+
+    const torso = `<path d="M -2 -8 C -16 -2, -16 44, 0 54 C 15 44, 15 -2, 2 -8 Z" fill="#FFF" stroke="${INK}" stroke-width="3.6" stroke-linejoin="round"/>`;
+    const legSvg = `<path d="M -5 51 Q -14 75 -22 98 M 5 51 Q 14 75 22 98" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" fill="none"/>`;
+    let armSvg = `<path d="M -11 14 L -48 22 M 11 14 L 48 18" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+    if (comicProp) {
+      armSvg = `<path d="M -11 16 L -82 2 M 11 16 L 52 -4" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>
+        <g transform="translate(-112 18) rotate(-5)">
+          <rect x="-26" y="-42" width="52" height="84" rx="4" fill="#ECFEFF" stroke="${INK}" stroke-width="2.8"/>
+          <circle cx="-12" cy="-28" r="7" fill="#22D3EE" stroke="${INK}" stroke-width="1.8"/>
+          <line x1="-18" y1="-12" x2="18" y2="-12" stroke="#0891B2" stroke-width="2.5"/>
+          <line x1="-18" y1="0" x2="16" y2="0" stroke="#0891B2" stroke-width="2.5"/>
+          <circle cx="0" cy="20" r="10" fill="#FFF" stroke="${INK}" stroke-width="2"/>
+        </g>`;
+    } else if (arms === 'up') {
+      armSvg = `<path d="M -11 12 L -50 -20 M 11 12 L 50 -16" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+    }
+
+    const head = `<path d="M 0 -92 C 26 -93, 44 -74, 42 -48 C 43 -22, 24 -7, 0 -8 C -25 -7, -43 -23, -42 -49 C -43 -75, -24 -92, 0 -92 Z" fill="#FFF" stroke="${INK}" stroke-width="3.8" stroke-linejoin="round"/>`;
+    // Iconic V-shaped angry eyebrows!
+    const eyebrows = `<path d="M ${(-18 + hw * 0.4).toFixed(1)} -124 L -1 -90 L ${(19 + hw * 0.4).toFixed(1)} -126" fill="none" stroke="${INK}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    let eyeSvg = `<path d="M -12 -75 L -11 -56 M 12 -75 L 13 -56" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+    if (eyes === 'angry') eyeSvg = `<path d="M -14 -76 L -12 -55 M 14 -76 L 12 -55" stroke="${INK}" stroke-width="4.2" stroke-linecap="round"/>`;
+    else if (eyes === 'squint') eyeSvg = `<path d="M -22 -70 L -10 -62 L -22 -54 M 22 -70 L 10 -62 L 22 -54" fill="none" stroke="${INK}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    const mouthSvg = mouth === 'yell'
+      ? `<g transform="translate(0 -34) scale(1 ${mouthPulse.toFixed(3)})"><ellipse cx="0" cy="0" rx="14" ry="20" fill="${INK}"/><ellipse cx="0" cy="10" rx="8" ry="6" fill="#DC2626" opacity="0.85"/></g>`
+      : `<ellipse cx="0" cy="-36" rx="12" ry="17" fill="${INK}"/>`;
+
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})" opacity="${opacity.toFixed(3)}">
+      ${buttSvg}${legSvg}${torso}${armSvg}${head}${eyebrows}${eyeSvg}${mouthSvg}
+    </g>`;
+  }
+
+  // Sci-Fi Time Travel Ray Gun (Panel 1!)
+  function timeRayGun({ x, y, scale = 1, zapping = false, zapLen = 135, t = 0 }) {
+    const jitter = zapping ? Math.sin(t * 60) * 3 : 0;
+    let zapSvg = '';
+    if (zapping) {
+      const segs = 5;
+      let d1 = 'M -62 0', d2 = 'M -62 8';
+      for (let i = 1; i <= segs; i++) {
+        const px = -62 - (zapLen * i) / segs;
+        const py = (i % 2 === 0 ? -18 : 18) + Math.sin(t * 45 + i * 2) * 6;
+        d1 += ` L ${px.toFixed(1)} ${(py - 6).toFixed(1)}`;
+        d2 += ` L ${px.toFixed(1)} ${(py + 12).toFixed(1)}`;
+      }
+      zapSvg = `<g>
+        <path d="${d1}" fill="none" stroke="#22D3EE" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+        <path d="${d1}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="${d2}" fill="none" stroke="#A855F7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+        <circle cx="${(-62 - zapLen).toFixed(1)}" cy="4" r="${(18 + Math.sin(t * 40) * 5).toFixed(1)}" fill="#22D3EE" opacity="0.75"/>
+      </g>`;
+    }
+    return `<g transform="translate(${(x + jitter).toFixed(1)} ${y.toFixed(1)}) scale(${scale.toFixed(3)})">
+      ${zapSvg}
+      <rect x="-42" y="-76" width="54" height="36" rx="6" fill="#CBD5E1" stroke="${INK}" stroke-width="3.4"/>
+      <ellipse cx="-42" cy="-58" rx="11" ry="18" fill="${INK}"/>
+      <polygon points="8,42 38,42 28,92 -4,92" fill="#94A3B8" stroke="${INK}" stroke-width="3.4" stroke-linejoin="round"/>
+      <rect x="-46" y="-42" width="118" height="86" rx="10" fill="#ECFEFF" stroke="${INK}" stroke-width="3.8"/>
+      <ellipse cx="-48" cy="2" rx="22" ry="36" fill="${INK}" stroke="${INK}" stroke-width="3.4"/>
+      <ellipse cx="-52" cy="2" rx="11" ry="22" fill="${zapping ? '#22D3EE' : '#475569'}"/>
+      ${svgMultiText(18, 4, ['Time', 'travel', 'ray'], { size: 20, lineHeight: 22, fill: '#0E7490' })}
+    </g>`;
+  }
+
+  // Futuristic Jet-Powered Hover Folding Chair (Panels 2 & 4!)
+  function jetFoldingChair({ x, y, scale = 1, t = 0 }) {
+    const fl = 0.88 + 0.22 * Math.sin(t * 32);
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${scale.toFixed(3)})">
+      <!-- Twin rocket thrusters under the legs -->
+      <g transform="translate(-44 65)">
+        <rect x="-18" y="-12" width="36" height="28" rx="4" fill="#64748B" stroke="${INK}" stroke-width="3"/>
+        <ellipse cx="0" cy="18" rx="16" ry="7" fill="${INK}"/>
+        <path d="M -14 20 L -8 ${(54 * fl).toFixed(1)} L 0 ${(36 * fl).toFixed(1)} L 8 ${(56 * fl).toFixed(1)} L 14 20 Z" fill="#F97316" stroke="#DC2626" stroke-width="2.4"/>
+      </g>
+      <g transform="translate(44 65)">
+        <rect x="-18" y="-12" width="36" height="28" rx="4" fill="#64748B" stroke="${INK}" stroke-width="3"/>
+        <ellipse cx="0" cy="18" rx="16" ry="7" fill="${INK}"/>
+        <path d="M -14 20 L -8 ${(56 * fl).toFixed(1)} L 0 ${(36 * fl).toFixed(1)} L 8 ${(54 * fl).toFixed(1)} L 14 20 Z" fill="#F97316" stroke="#DC2626" stroke-width="2.4"/>
+      </g>
+      <!-- Folding X legs -->
+      <g stroke="#475569" stroke-width="5" stroke-linecap="round">
+        <line x1="-68" y1="0" x2="-24" y2="56"/><line x1="-20" y1="0" x2="-68" y2="56"/>
+        <line x1="20" y1="0" x2="68" y2="56"/><line x1="68" y1="0" x2="24" y2="56"/>
+      </g>
+      <rect x="-92" y="-8" width="184" height="14" rx="6" fill="#38BDF8" stroke="${INK}" stroke-width="3.2"/>
+    </g>`;
+  }
+
+  // Futuristic TNT-Strapped Super Boomerang (Panels 2 & 3!)
+  function tntBoomerang({ x, y, rot = 0, scale = 1 }) {
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})">
+      <!-- 3 TNT blocks strapped to outer edge -->
+      <g transform="translate(26 -58) rotate(-25)">
+        <rect x="-18" y="-14" width="36" height="28" rx="3" fill="#EF4444" stroke="${INK}" stroke-width="2.8"/>
+        ${svgText(0, 6, 'TNT', { size: 15, fill: '#FFFFFF' })}
+      </g>
+      <g transform="translate(52 0) rotate(0)">
+        <rect x="-18" y="-14" width="36" height="28" rx="3" fill="#EF4444" stroke="${INK}" stroke-width="2.8"/>
+        ${svgText(0, 6, 'TNT', { size: 15, fill: '#FFFFFF' })}
+      </g>
+      <g transform="translate(26 58) rotate(25)">
+        <rect x="-18" y="-14" width="36" height="28" rx="3" fill="#EF4444" stroke="${INK}" stroke-width="2.8"/>
+        ${svgText(0, 6, 'TNT', { size: 15, fill: '#FFFFFF' })}
+      </g>
+      <!-- Curved boomerang body -->
+      <path d="M -28 -84 C 36 -56, 46 56, -28 84 C -48 88, -54 62, -32 52 C 12 34, 12 -34, -32 -52 C -54 -62, -48 -88, -28 -84 Z"
+            fill="#FACC15" stroke="${INK}" stroke-width="3.6" stroke-linejoin="round"/>
+      ${svgText(0, 4, 'BOOM', { size: 13, fill: INK, rot: 90 })}
+    </g>`;
+  }
+
+  // Cyborg Robo-Prankster with Visor, Helmet Blasters & Lightning Claws (Panel 2!)
+  function roboPrankster({ x, y, scale = 1, t = 0 }) {
+    const bob = Math.sin(t * 9) * 3;
+    return `<g transform="translate(${x.toFixed(1)} ${(y + bob).toFixed(1)}) scale(${scale.toFixed(3)})">
+      <!-- Rocket legs -->
+      <rect x="-24" y="64" width="18" height="32" rx="3" fill="#94A3B8" stroke="${INK}" stroke-width="3"/>
+      <rect x="6" y="64" width="18" height="32" rx="3" fill="#94A3B8" stroke="${INK}" stroke-width="3"/>
+      <!-- Robot torso -->
+      <rect x="-26" y="12" width="52" height="54" rx="6" fill="#CBD5E1" stroke="${INK}" stroke-width="3.4"/>
+      <!-- Dual claw + lightning arms -->
+      <rect x="-78" y="22" width="52" height="16" rx="4" fill="#94A3B8" stroke="${INK}" stroke-width="3"/>
+      <rect x="26" y="22" width="52" height="16" rx="4" fill="#94A3B8" stroke="${INK}" stroke-width="3"/>
+      <polygon points="-78,18 -102,10 -92,26 -108,38 -78,38" fill="#FACC15" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/>
+      <polygon points="78,18 102,10 92,26 108,38 78,38" fill="#FACC15" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/>
+      <!-- Square robot helmet + top & side blasters -->
+      <rect x="-18" y="-108" width="36" height="24" rx="4" fill="#64748B" stroke="${INK}" stroke-width="3"/>
+      <rect x="-6" y="-124" width="12" height="18" rx="2" fill="#22D3EE" stroke="${INK}" stroke-width="2.6"/>
+      <rect x="-78" y="-66" width="24" height="30" rx="4" fill="#64748B" stroke="${INK}" stroke-width="3"/>
+      <rect x="54" y="-66" width="24" height="30" rx="4" fill="#64748B" stroke="${INK}" stroke-width="3"/>
+      <rect x="-54" y="-84" width="108" height="96" rx="10" fill="#E2E8F0" stroke="${INK}" stroke-width="3.6"/>
+      <!-- Prankster face inside helmet with dark visor + signature smirk! -->
+      <circle cx="0" cy="-36" r="38" fill="#FFF" stroke="${INK}" stroke-width="3.2"/>
+      <rect x="-40" y="-64" width="80" height="24" rx="8" fill="#1E1B24" stroke="#22D3EE" stroke-width="2.4"/>
+      <path d="M -16 -24 Q 0 -8 16 -24" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>
+    </g>`;
+  }
+
+  // Fluffy Magic Spell "poof!!!" cloud (Panel 11!)
+  function poofCloud({ x = 300, y = 525, scale = 1, t = 0 }) {
+    if (scale <= 0.02) return '';
+    const sp = Math.sin(t * 14) * 6;
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${scale.toFixed(3)})">
+      <path d="M -118 22 C -168 18, -172 -58, -112 -74 C -104 -144, -8 -164, 34 -116 C 88 -154, 168 -102, 138 -36 C 188 12, 146 98, 76 92 C 36 142, -56 138, -86 92 C -144 96, -158 48, -118 22 Z"
+            fill="#F3E8FF" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>
+      <g stroke="#A855F7" stroke-width="3.5" stroke-linecap="round" opacity="0.85">
+        <line x1="-175" y1="${(-85 + sp).toFixed(1)}" x2="-152" y2="${(-72 + sp).toFixed(1)}"/>
+        <line x1="168" y1="${(-95 - sp).toFixed(1)}" x2="188" y2="${(-112 - sp).toFixed(1)}"/>
+        <line x1="158" y1="${(105 + sp).toFixed(1)}" x2="180" y2="${(118 + sp).toFixed(1)}"/>
+        <line x1="-155" y1="${(105 - sp).toFixed(1)}" x2="-176" y2="${(120 - sp).toFixed(1)}"/>
+      </g>
+      ${svgText(0, 14, 'poof!!!', { size: 58, fill: '#7C3AED', stroke: '#FFF', strokeWidth: 5 })}
+    </g>`;
+  }
+
+  // Dark scribbled pile of Ash (Panels 7, 8, 9, 10!)
+  function ashPile({ x, y, scale = 1, dark = false, t = 0 }) {
+    const wob = Math.sin(t * 5) * 2.5;
+    const fill = dark ? '#334155' : '#94A3B8';
+    const hi = dark ? '#475569' : '#CBD5E1';
+    const stroke = dark ? '#0F172A' : '#475569';
+    return `<g transform="translate(${x.toFixed(1)} ${(y + wob).toFixed(1)}) scale(${scale.toFixed(3)})">
+      <path d="M -92 38 C -122 10, -108 -68, -42 -96 C 12 -118, 86 -92, 104 -26 C 122 36, 76 92, 12 96 C -48 100, -76 68, -92 38 Z"
+            fill="${fill}" stroke="${stroke}" stroke-width="4" stroke-linejoin="round"/>
+      <!-- Sketchy soot scribble texture -->
+      <g stroke="${hi}" stroke-width="4.5" stroke-linecap="round" opacity="0.5">
+        <path d="M -62 -40 L -48 55 M -28 -68 L -18 68 M 8 -75 L 14 70 M 44 -58 L 52 55 M 74 -30 L 70 35"/>
+      </g>
+    </g>`;
+  }
+
+  // Green wavy Barf Ocean (Panels 14 & 15!)
+  function barfOcean({ levelY = 140, t = 0 }) {
+    const w = Math.sin(t * 4.2) * 16;
+    return `<g>
+      <path d="M -40 ${levelY.toFixed(1)} Q ${(140 + w).toFixed(1)} ${(levelY - 26).toFixed(1)} 300 ${levelY.toFixed(1)} T 640 ${levelY.toFixed(1)} L 640 860 L -40 860 Z"
+            fill="#BEF264" stroke="#4D7C0F" stroke-width="4" opacity="0.72"/>
+      <path d="M -20 ${(levelY + 135).toFixed(1)} Q ${(170 - w).toFixed(1)} ${(levelY + 105).toFixed(1)} 330 ${(levelY + 135).toFixed(1)} T 640 ${(levelY + 135).toFixed(1)}"
+            fill="none" stroke="#65A30D" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
+      <path d="M -20 ${(levelY + 315).toFixed(1)} Q ${(160 + w).toFixed(1)} ${(levelY + 285).toFixed(1)} 320 ${(levelY + 315).toFixed(1)} T 640 ${(levelY + 315).toFixed(1)}"
+            fill="none" stroke="#65A30D" stroke-width="4" stroke-linecap="round" opacity="0.65"/>
+      <path d="M -20 ${(levelY + 510).toFixed(1)} Q ${(180 - w).toFixed(1)} ${(levelY + 480).toFixed(1)} 340 ${(levelY + 510).toFixed(1)} T 640 ${(levelY + 510).toFixed(1)}"
+            fill="none" stroke="#4D7C0F" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+    </g>`;
+  }
+
+  function wrapPanel(innerSvg, { panelNum = null, shakeX = 0, shakeY = 0, bg = PAPER } = {}) {
+    const badge = panelNum !== null
+      ? `<g opacity="0.78"><rect x="20" y="786" width="38" height="32" rx="7" fill="#FFF" stroke="${INK}" stroke-width="2.4"/>${svgText(39, 810, String(panelNum), { size: 21 })}</g>`
+      : '';
+    return `<svg xmlns="${NS}" viewBox="0 0 600 840" width="100%" height="100%" style="background:${bg};">
+      <defs>
+        <clipPath id="pc10"><rect x="12" y="12" width="576" height="816" rx="4"/></clipPath>
+        <pattern id="ht10" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.2" fill="#94A3B8" opacity="0.12"/></pattern>
+      </defs>
+      <rect x="0" y="0" width="600" height="840" fill="${bg}"/>
+      <rect x="12" y="12" width="576" height="816" fill="url(#ht10)"/>
+      <g clip-path="url(#pc10)"><g transform="translate(${shakeX.toFixed(1)} ${shakeY.toFixed(1)})">${innerSvg}</g></g>
+      <rect x="10" y="10" width="580" height="820" rx="6" fill="none" stroke="${INK}" stroke-width="4.2"/>
+      ${badge}
+    </svg>`;
+  }
+
+  function renderScene(sceneIdx, localT) {
+    const s = SCENES[sceneIdx];
+    const t = clamp(localT, 0, s.duration);
+    let out = '', shakeX = 0, shakeY = 0, bg = PAPER;
+
+    switch (sceneIdx) {
+      case 0: { // COVER — "#10 Blank edition!!! The weird guy: Let's Time Travel!!!" + "No!!!"
+        const bS = easeOutBack(invLerp(0.05, 0.45, t));
+        const tOp = invLerp(0.18, 0.55, t);
+        const gY = lerp(695, 565, easeOutBack(invLerp(0.4, 1.0, t))) + Math.sin(t * 5) * 3;
+        const bubS = easeOutBack(invLerp(1.25, 1.75, t));
+        const aOp = invLerp(2.1, 2.6, t);
+
+        out += `<circle cx="268" cy="545" r="148" fill="#CFFAFE" opacity="0.65"/>`;
+        out += `<g transform="translate(76 68) scale(${bS.toFixed(3)})"><circle cx="0" cy="0" r="36" fill="#22D3EE" stroke="${INK}" stroke-width="3.6"/>${svgText(0, 11, '#10', { size: 30 })}</g>`;
+        out += `<g transform="translate(338 68) scale(${bS.toFixed(3)})"><ellipse cx="0" cy="0" rx="176" ry="33" fill="#ECFEFF" stroke="${INK}" stroke-width="3.4"/>${svgText(0, 10, 'Blank edition!!!', { size: 28 })}</g>`;
+
+        out += `<g opacity="${tOp.toFixed(3)}">
+          ${svgText(300, 178, 'The weird guy:', { size: 54 })}
+          ${svgText(300, 246, "Let's Time Travel!!!", { size: 48, fill: '#0891B2', stroke: INK, strokeWidth: 1.4 })}
+        </g>`;
+
+        out += weirdGuy({ x: 268, y: gY, scale: 1.18, comicProp: true, eyes: 'angry', mouth: 'yell', t });
+        out += speechBubble({
+          cx: 465, cy: 382, rx: 94, ry: 68,
+          tailX: 325, tailY: 468,
+          lines: ['No!!!'],
+          fontSize: 44, scale: bubS, fill: '#FEE2E2', textColor: '#DC2626'
+        });
+
+        out += `<g opacity="${aOp.toFixed(3)}">
+          ${svgText(205, 775, 'By: superbear1859', { size: 30, rot: -1.5 })}
+          <path d="M 66 787 Q 205 779 344 785" fill="none" stroke="#22D3EE" stroke-width="4.5" stroke-linecap="round" opacity="0.8"/>
+        </g>`;
+        break;
+      }
+
+      case 1: { // Panel 1: "Ha, ha, ha!!!" + Time Travel Ray fires "Zap!!!" + "Nooo!!!"
+        const lB = Math.sin(t * 22) * 5;
+        const zapping = t > 0.72;
+        if (t > 0.72 && t < 1.65) shakeX = Math.sin(t * 62) * 5;
+
+        out += `<g transform="translate(0 ${lB.toFixed(1)})" opacity="${invLerp(0.05, 0.4, t).toFixed(3)}">
+          ${svgText(265, 112, 'Ha, ha, ha!!!', { size: 62, fill: '#7C3AED', rot: -2 })}
+        </g>`;
+
+        out += weirdGuy({ x: 252, y: 575, scale: 1.12, eyes: 'angry', mouth: 'yell', t });
+        out += timeRayGun({ x: lerp(660, 488, easeOutBack(invLerp(0.25, 0.72, t))), y: 515, scale: 0.96, zapping, zapLen: 122, t });
+
+        if (zapping) {
+          out += `<g transform="translate(455 318) rotate(-14) scale(${easeOutBack(invLerp(0.72, 1.12, t)).toFixed(3)})">
+            ${svgText(0, 0, 'Zap!!!', { size: 68, fill: '#0891B2', stroke: '#ECFEFF', strokeWidth: 7 })}
+          </g>`;
+        }
+
+        out += speechBubble({
+          cx: 132, cy: 365, rx: 98, ry: 72, rot: -12,
+          tailX: 215, tailY: 478,
+          lines: ['Nooo!!!'],
+          fontSize: 38, scale: easeOutBack(invLerp(1.4, 1.9, t)), fill: '#FEE2E2', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      case 2: { // Panel 2: "In the future!!!" + Jet Chair + TNT Boomerang + Robo-Prankster!
+        bg = '#F0F9FF';
+        const hov = Math.sin(t * 7) * 6;
+        out += svgText(300, 102, 'In the future!!!', { size: 58, fill: '#0369A1', opacity: invLerp(0.06, 0.42, t) });
+
+        // Hovering jet-powered folding chair at top!
+        out += jetFoldingChair({ x: 345, y: 205 + hov, scale: 0.92, t });
+
+        // Weird Guy + "Grrr!!!"
+        out += weirdGuy({ x: 165, y: 505, scale: 1.0, eyes: 'angry', mouth: 'yell', t });
+        out += speechBubble({
+          cx: 325, cy: 392, rx: 86, ry: 58,
+          tailX: 215, tailY: 452,
+          lines: ['Grrr!!!'],
+          fontSize: 34, scale: easeOutBack(invLerp(1.45, 1.9, t)), fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+
+        // Incoming TNT-strapped Boomerang on right!
+        const bRot = -12 + Math.sin(t * 14) * 14;
+        out += tntBoomerang({ x: lerp(540, 488, easeOutCubic(invLerp(0.5, 1.4, t))), y: 478, rot: bRot, scale: 0.88 });
+
+        // Cyborg Robo-Prankster at bottom!
+        out += roboPrankster({ x: 355, y: 710, scale: 0.96, t });
+        break;
+      }
+
+      case 3: { // Panel 3: Giant "Boom!!!" explosion + TNT Boomerang flying away!
+        const expS = easeOutBack(invLerp(0.12, 0.72, t));
+        if (t > 0.18 && t < 1.1) {
+          shakeX = Math.sin(t * 76) * 8;
+          shakeY = Math.cos(t * 70) * 7;
+        }
+
+        // Giant comic explosion starburst!
+        out += `<g transform="translate(265 415) scale(${expS.toFixed(3)})">
+          <path d="M -215 -85 L -165 -265 L -72 -185 L 28 -355 L 88 -165 L 228 -245 L 145 -45 L 252 65 L 118 118 L 165 268 L 28 175 L -65 305 L -112 145 L -238 195 L -155 25 Z"
+                fill="#FEF08A" stroke="#DC2626" stroke-width="5" stroke-linejoin="round"/>
+          <path d="M -145 -55 L -112 -180 L -45 -125 L 18 -245 L 62 -112 L 155 -168 L 98 -32 L 172 44 L 82 82 L 112 185 L 18 118 L -42 205 L -78 98 L -162 132 L -105 18 Z"
+                fill="#F97316" opacity="0.88"/>
+          ${svgText(0, 16, 'Boom!!!', { size: 96, fill: '#FFFFFF', stroke: INK, strokeWidth: 8, rot: -10 })}
+        </g>`;
+
+        // TNT Boomerang zipping away on the right!
+        const bFly = easeOutCubic(invLerp(0.25, 1.8, t));
+        out += tntBoomerang({ x: lerp(420, 522, bFly), y: lerp(490, 565, bFly), rot: lerp(-10, 48, bFly), scale: 0.72 });
+        break;
+      }
+
+      case 4: { // Panel 4: "zoom!!!" top & bottom + Weird Guy on fire! "Hey!!! I blew up!!!" + "← fire"
+        const fS = 0.92 + 0.12 * Math.sin(t * 24);
+        const zP = easeOutCubic(invLerp(0.1, 1.1, t));
+
+        // Jet chair zooming off top!
+        out += jetFoldingChair({ x: 205, y: lerp(100, -10, zP), scale: 0.95, t });
+        out += svgText(412, 165, 'zoom!!!', { size: 54, fill: '#0284C7', rot: -6, opacity: invLerp(0.15, 0.55, t) });
+
+        // Weird Guy's bottom half replaced by roaring flames!
+        out += `<g transform="translate(232 515)">
+          <g transform="translate(0 28) scale(${fS.toFixed(3)})">
+            <path d="M -68 72 L -56 -28 L -32 22 L -18 -42 L 4 18 L 22 -38 L 42 24 L 64 -26 L 74 74 L 46 38 L 22 86 L -2 38 L -28 84 L -48 40 Z"
+                  fill="#F97316" stroke="#DC2626" stroke-width="3.6" stroke-linejoin="round"/>
+            <path d="M -44 52 L -34 -12 L -12 22 L 4 -24 L 22 20 L 42 -10 L 48 54 L 18 28 L 0 60 L -22 26 Z" fill="#FDE047"/>
+          </g>
+          <path d="M 0 -92 C 26 -93, 44 -74, 42 -48 C 43 -22, 24 -7, 0 -8 C -25 -7, -43 -23, -42 -49 C -43 -75, -24 -92, 0 -92 Z" fill="#FFF" stroke="${INK}" stroke-width="3.8"/>
+          <path d="M -18 -124 L -1 -90 L 19 -126" fill="none" stroke="${INK}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M -14 -76 L -12 -55 M 14 -76 L 12 -55" stroke="${INK}" stroke-width="4.2" stroke-linecap="round"/>
+          <ellipse cx="0" cy="-34" rx="14" ry="19" fill="${INK}"/>
+        </g>`;
+
+        // "← fire" label
+        out += `<g opacity="${invLerp(0.55, 0.95, t).toFixed(2)}">
+          ${handArrow(392, 565, 318, 565, 355, 558, '#DC2626')}
+          ${svgText(458, 580, 'fire', { size: 54, fill: '#DC2626' })}
+        </g>`;
+
+        // "Hey!!! I blew up!!!"
+        out += speechBubble({
+          cx: 412, cy: 318, rx: 118, ry: 88,
+          tailX: 278, tailY: 425,
+          lines: ['Hey!!!', 'I blew', 'up!!!'],
+          fontSize: 32, scale: easeOutBack(invLerp(1.2, 1.65, t)), fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+
+        // Robo-Prankster zooming off the bottom!
+        out += roboPrankster({ x: 220, y: lerp(790, 880, zP), scale: 0.92, t });
+        out += svgText(445, 780, 'zoom!!!', { size: 52, fill: '#0284C7', rot: -6, opacity: invLerp(0.15, 0.55, t) });
+        break;
+      }
+
+      case 5: { // Panel 5: Fire climbs over his mouth! "Mmmfff!!!"
+        const fS = 0.92 + 0.14 * Math.sin(t * 26);
+        const j = Math.sin(t * 50) * 3;
+        out += `<g transform="translate(${(275 + j).toFixed(1)} 515) scale(1.28)">
+          <path d="M 0 -92 C 26 -93, 44 -74, 42 -48 C 43 -22, 24 -7, 0 -8 C -25 -7, -43 -23, -42 -49 C -43 -75, -24 -92, 0 -92 Z" fill="#FFF" stroke="${INK}" stroke-width="3.6"/>
+          <path d="M -18 -124 L -1 -90 L 19 -126" fill="none" stroke="${INK}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M -14 -76 L -12 -55 M 14 -76 L 12 -55" stroke="${INK}" stroke-width="4.2" stroke-linecap="round"/>
+          <!-- Fire covering lower half of face! -->
+          <g transform="translate(0 -12) scale(${fS.toFixed(3)})">
+            <path d="M -68 78 L -56 -32 L -32 16 L -14 -44 L 4 14 L 22 -42 L 42 18 L 62 -30 L 72 78 L 44 40 L 18 90 L -6 40 L -32 88 L -50 42 Z"
+                  fill="#F97316" stroke="#DC2626" stroke-width="3.4" stroke-linejoin="round"/>
+            <path d="M -42 54 L -32 -16 L -10 22 L 6 -28 L 24 22 L 42 -14 L 46 58 L 16 32 L -4 62 L -24 30 Z" fill="#FDE047"/>
+          </g>
+        </g>`;
+
+        out += speechBubble({
+          cx: 418, cy: 235, rx: 128, ry: 74,
+          tailX: 322, tailY: 392,
+          lines: ['Mmmfff!!!'],
+          fontSize: 38, scale: easeOutBack(invLerp(0.85, 1.35, t)), fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+        break;
+      }
+
+      case 6: { // Panel 6: Fully engulfed in flames (only V-eyebrow tips peek out!) "Ahhh!!!"
+        const fS = 0.92 + 0.14 * Math.sin(t * 28);
+        const j = Math.sin(t * 54) * 4;
+        out += `<g transform="translate(${(275 + j).toFixed(1)} 525) scale(1.38)">
+          <path d="M -18 -118 L -1 -88 L 19 -120" fill="none" stroke="${INK}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <g transform="scale(${fS.toFixed(3)})">
+            <path d="M -76 92 L -68 -48 L -38 -88 L -18 -38 L 0 -104 L 22 -36 L 44 -86 L 72 -42 L 82 96 L 48 48 L 22 108 L -4 52 L -36 106 L -54 50 Z"
+                  fill="#F97316" stroke="#DC2626" stroke-width="3.6" stroke-linejoin="round"/>
+            <path d="M -48 64 L -40 -26 L -14 -60 L 4 -18 L 22 -64 L 46 -22 L 52 68 L 18 36 L -4 72 L -26 36 Z" fill="#FDE047"/>
+          </g>
+        </g>`;
+
+        out += speechBubble({
+          cx: 382, cy: 205, rx: 112, ry: 72,
+          tailX: 308, tailY: 358,
+          lines: ['Ahhh!!!'],
+          fontSize: 44, scale: easeOutBack(invLerp(0.75, 1.25, t)), spiky: true, fill: '#FEE2E2', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      case 7: { // Panel 7: Reduced to a pile of "ash"! "Arggghh!!!"
+        out += svgText(300, 185, 'ash', { size: 64, fill: '#475569', opacity: invLerp(0.1, 0.5, t) });
+        out += handArrow(300, 208, 300, 315, 312, 260, '#475569');
+        out += ashPile({ x: 300, y: 425, scale: 1.15 * easeOutBack(invLerp(0.1, 0.65, t)), dark: false, t });
+        out += speechBubble({
+          cx: 300, cy: 678, rx: 142, ry: 82,
+          tailX: 300, tailY: 530,
+          lines: ['Arggghh!!!'],
+          fontSize: 42, scale: easeOutBack(invLerp(0.9, 1.4, t)), spiky: true, fill: '#FEE2E2', textColor: '#B91C1C'
+        });
+        break;
+      }
+
+      case 8: { // Panel 8: Big dark Ash pile in front of Minecraft TV & controller! "I can't play Minecraft!!!"
+        out += ashPile({ x: 208, y: 495, scale: 1.32, dark: true, t });
+
+        // Minecraft TV on a tripod stand on the right!
+        out += `<g transform="translate(462 475)">
+          <line x1="0" y1="68" x2="0" y2="148" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+          <line x1="0" y1="110" x2="-36" y2="155" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+          <line x1="0" y1="110" x2="36" y2="155" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+          <rect x="-82" y="-62" width="164" height="130" rx="8" fill="#F1F5F9" stroke="${INK}" stroke-width="3.8"/>
+          <rect x="-72" y="-52" width="144" height="110" rx="4" fill="#DCFCE7" stroke="#16A34A" stroke-width="2.4"/>
+          ${svgText(0, -24, 'Minecraft', { size: 24, fill: '#15803D' })}
+          <!-- Pixel Creeper face icon! -->
+          <g transform="translate(0 18)">
+            <rect x="-26" y="-26" width="52" height="52" fill="#22C55E" stroke="${INK}" stroke-width="2.6"/>
+            <rect x="-18" y="-16" width="12" height="12" fill="${INK}"/>
+            <rect x="6" y="-16" width="12" height="12" fill="${INK}"/>
+            <rect x="-6" y="-4" width="12" height="14" fill="${INK}"/>
+            <rect x="-14" y="4" width="8" height="16" fill="${INK}"/>
+            <rect x="6" y="4" width="8" height="16" fill="${INK}"/>
+          </g>
+        </g>`;
+
+        // Game controller sitting on the floor!
+        out += `<g transform="translate(265 725)">
+          <path d="M -52 -18 C -72 -18, -82 32, -56 38 C -40 42, -32 18, -20 14 L 20 14 C 32 18, 40 42, 56 38 C 82 32, 72 -18, 52 -18 Z"
+                fill="#E2E8F0" stroke="${INK}" stroke-width="3.4" stroke-linejoin="round"/>
+          <path d="M -48 -4 L -48 16 M -58 6 L -38 6" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="42" cy="-2" r="5" fill="#EF4444"/><circle cx="54" cy="8" r="5" fill="#3B82F6"/>
+          <circle cx="30" cy="8" r="5" fill="#22C55E"/><circle cx="42" cy="18" r="5" fill="#FACC15"/>
+        </g>`;
+
+        out += speechBubble({
+          cx: 268, cy: 172, rx: 185, ry: 88,
+          tailX: 222, tailY: 355,
+          lines: ["I can't play", 'Minecraft!!!'],
+          fontSize: 36, scale: easeOutBack(invLerp(1.0, 1.5, t)), fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+        break;
+      }
+
+      case 9: { // Panel 9: Big Ash pile crying "Help!!!"
+        out += ashPile({ x: 285, y: 315, scale: 1.38, dark: true, t });
+        out += speechBubble({
+          cx: 312, cy: 625, rx: 128, ry: 88,
+          tailX: 295, tailY: 448,
+          lines: ['Help!!!'],
+          fontSize: 54, scale: easeOutBack(invLerp(0.65, 1.15, t)), fill: '#FEE2E2', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      case 10: { // Panel 10: "Okay!!!" + Round dark Ash ball
+        out += svgText(300, 128, 'Okay!!!', { size: 74, fill: '#1D4ED8', opacity: invLerp(0.08, 0.45, t) });
+        out += ashPile({ x: 300, y: 505, scale: 1.48, dark: true, t });
+        break;
+      }
+
+      case 11: { // Panel 11: "poo poo poo (big butt) this is a magic spell!!!" + "poof!!!"
+        out += svgMultiText(300, 148, ['poo poo poo', '(big butt)', 'this is a', 'magic spell!!!'], {
+          size: 44, lineHeight: 52, fill: '#7C3AED', opacity: invLerp(0.08, 0.5, t)
+        });
+        out += poofCloud({ x: 300, y: 555, scale: easeOutBack(invLerp(1.05, 1.6, t)), t });
+        break;
+      }
+
+      case 12: { // Panel 12: "You are tiny!!!!!!" + Tiny Weird Guy with GIANT butt!
+        const sPop = easeOutBack(invLerp(0.25, 0.85, t));
+        out += svgText(300, 118, 'You are tiny!!!!!!', { size: 58, fill: '#1D4ED8', opacity: invLerp(0.08, 0.45, t) });
+
+        // Tiny Weird Guy with a giant butt in the middle!
+        out += weirdGuy({ x: 295, y: 495, scale: 0.34 * sPop, arms: 'up', bigButt: true, eyes: 'angry', mouth: 'yell', t });
+
+        out += speechBubble({
+          cx: 300, cy: 312, rx: 142, ry: 82,
+          tailX: 295, tailY: 442,
+          lines: ['Hey!! Now', "I'm tiny!!!"],
+          fontSize: 32, scale: easeOutBack(invLerp(1.3, 1.8, t)), fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+
+        out += speechBubble({
+          cx: 300, cy: 678, rx: 152, ry: 88,
+          tailX: 295, tailY: 545,
+          lines: ['My butt', 'is giant!!!'],
+          fontSize: 36, scale: easeOutBack(invLerp(2.2, 2.7, t)), fill: '#FEE2E2', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      case 13: { // Panel 13: "Barf!!!" waterfall + "Notice the big butt" arrow!
+        const bf = easeOutCubic(invLerp(0.3, 1.35, t));
+        if (bf > 0.02) {
+          out += `<g transform="translate(305 452) scale(${bf.toFixed(3)})">
+            <path d="M 0 0 C -85 -48, -165 -30, -232 45 L -248 255 L -178 195 L -145 315 L -78 215 L -48 295 L 0 65 Z"
+                  fill="#A3E635" stroke="#4D7C0F" stroke-width="4" stroke-linejoin="round" opacity="0.9"/>
+            <ellipse cx="-145" cy="115" rx="34" ry="62" fill="#BEF264" opacity="0.65"/>
+          </g>`;
+        }
+
+        out += weirdGuy({ x: 345, y: 495, scale: 0.92, bigButt: true, eyes: 'squint', mouth: 'yell', t });
+
+        out += speechBubble({
+          cx: 205, cy: 205, rx: 122, ry: 86, rot: -12,
+          tailX: 312, tailY: 405,
+          lines: ['Barf!!!'],
+          fontSize: 52, scale: easeOutBack(invLerp(0.35, 0.85, t)), fill: '#ECFCCB', textColor: '#3F6212'
+        });
+
+        // "Notice the big butt" caption + arrow!
+        out += `<g opacity="${invLerp(1.35, 1.85, t).toFixed(2)}">
+          ${svgMultiText(488, 325, ['Notice', 'the big', 'butt'], { size: 36, lineHeight: 40, fill: '#7C3AED' })}
+          ${handArrow(462, 398, 412, 488, 455, 452, '#7C3AED')}
+        </g>`;
+        break;
+      }
+
+      case 14: { // Panel 14: "Your barf turned you into a normal human and made a barf ocean!!!" + "Noooo!!!"
+        bg = '#F7FEE7';
+        const tide = lerp(520, 145, easeOutCubic(invLerp(0.15, 1.4, t)));
+        out += barfOcean({ levelY: tide, t });
+
+        out += svgMultiText(300, 128, ['Your barf turned you', 'into a normal human', 'and made a barf ocean!!!'], {
+          size: 36, lineHeight: 44, fill: '#3F6212', stroke: '#F7FEE7', strokeWidth: 7,
+          opacity: invLerp(0.08, 0.48, t)
+        });
+
+        out += weirdGuy({ x: 225, y: 555, scale: 1.15, arms: 'up', bigButt: true, eyes: 'angry', mouth: 'yell', t });
+
+        out += speechBubble({
+          cx: 452, cy: 438, rx: 118, ry: 72,
+          tailX: 295, tailY: 495,
+          lines: ['Noooo!!!'],
+          fontSize: 40, scale: easeOutBack(invLerp(1.4, 1.9, t)), fill: '#FFFFFF', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      case 15: { // Panel 15: "The End" + Floating sideways in Barf Ocean + "I'm going to drown!!!"
+        bg = '#F7FEE7';
+        const floatY = 535 + Math.sin(t * 3.8) * 14;
+        out += barfOcean({ levelY: 96, t });
+
+        const endS = easeOutBack(invLerp(0.45, 1.05, t));
+        out += `<g transform="translate(300 285) scale(${endS.toFixed(3)})">
+          ${svgText(0, 16, 'The End', { size: 92, fill: INK, stroke: '#F7FEE7', strokeWidth: 7 })}
+          <path d="M -165 44 Q 0 32 165 44" fill="none" stroke="#65A30D" stroke-width="5.5" stroke-linecap="round"/>
+        </g>`;
+
+        // Floating sideways in the barf ocean (giant butt sticking right up!)
+        out += weirdGuy({ x: 295, y: floatY, scale: 1.08, rot: -90, bigButt: true, eyes: 'squint', mouth: 'yell', t });
+
+        // Rising barf bubbles
+        const bY = (t * 48) % 90;
+        out += `<g fill="#ECFCCB" fill-opacity="0.8" stroke="#4D7C0F" stroke-width="2.2">
+          <circle cx="155" cy="${(485 - bY).toFixed(1)}" r="10"/>
+          <circle cx="465" cy="${(455 - bY).toFixed(1)}" r="12"/>
+        </g>`;
+
+        out += speechBubble({
+          cx: 295, cy: 718, rx: 158, ry: 74,
+          tailX: 245, tailY: floatY + 42,
+          lines: ["I'm going to", 'drown!!!'],
+          fontSize: 32, scale: easeOutBack(invLerp(1.9, 2.4, t)), fill: '#FFFFFF', textColor: '#B91C1C'
+        });
+
+        out += svgText(300, 814, 'The Weird Guy #10  •  By superbear1859', {
+          size: 18, fill: '#365314', opacity: invLerp(2.9, 3.5, t) * 0.9
+        });
+        break;
+      }
+    }
+
+    return wrapPanel(out, { panelNum: s.panelNum, shakeX, shakeY, bg });
+  }
+
+  function timeToScene(globalT) {
+    const t = clamp(globalT, 0, TOTAL_DURATION);
+    for (let i = 0; i < SCENES.length; i++) {
+      if (t < SCENES[i].end || i === SCENES.length - 1) return { sceneIdx: i, localT: t - SCENES[i].start };
+    }
+    return { sceneIdx: 0, localT: 0 };
+  }
+
+  // =========================================================================
+  // REAL-TIME WEB AUDIO CARTOON SFX & CHATTER SYNTHESIZER
+  // =========================================================================
+  let audioCtx = null;
+  let muted = false;
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playTone(freq, dur, type = 'triangle', vol = 0.16, delay = 0) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, now);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + dur + 0.02);
+  }
+
+  function playSweep(f0, f1, dur, type = 'triangle', vol = 0.18, delay = 0) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(Math.max(20, f0), now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, f1), now + dur);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + dur + 0.02);
+  }
+
+  function playNoise(dur, vol = 0.16, filterFreq = 1200, filterType = 'bandpass', delay = 0) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime + delay;
+    const len = Math.max(1, Math.floor(audioCtx.sampleRate * dur));
+    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const flt = audioCtx.createBiquadFilter(); flt.type = filterType; flt.frequency.setValueAtTime(filterFreq, now);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(vol, now); g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    src.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+    src.start(now);
+  }
+
+  function triggerCue(cue) {
+    if (muted || !audioCtx) return;
+    const tp = cue.type;
+    if (tp === 'intro_jingle') {
+      [392, 494, 587, 784].forEach((f, i) => playTone(f, 0.16, 'triangle', 0.18, i * 0.10));
+    } else if (tp === 'outro_jingle') {
+      [[523, 0.16, 0], [494, 0.16, 0.15], [466, 0.16, 0.30], [440, 0.42, 0.45]].forEach(([f, d, dl]) => playTone(f, d, 'triangle', 0.18, dl));
+    } else if (tp === 'weird_talk') {
+      const cnt = cue.count || 5, base = cue.pitch || 560;
+      for (let i = 0; i < cnt; i++) playTone(base + (Math.random() * 150 - 55), 0.065, 'square', 0.08, i * 0.085);
+    } else if (tp === 'narrator_talk') {
+      const cnt = cue.count || 5, base = cue.pitch || 205;
+      for (let i = 0; i < cnt; i++) playTone(base + (Math.random() * 45 - 20), 0.10, 'sawtooth', 0.10, i * 0.115);
+    } else if (tp === 'weird_yell') {
+      const b = cue.pitch || 650;
+      playSweep(b * 0.85, b * 1.25, 0.28, 'square', 0.12);
+    } else if (tp === 'time_zap') {
+      for (let i = 0; i < 6; i++) playSweep(420 + i * 160, 1400 - i * 120, 0.09, 'sawtooth', 0.14, i * 0.08);
+      playSweep(1600, 260, 0.45, 'sine', 0.18, 0.42);
+    } else if (tp === 'future_synth') {
+      [440, 554, 659, 880, 1108].forEach((f, i) => playTone(f, 0.18, 'sine', 0.15, i * 0.08));
+    } else if (tp === 'jet_hover') {
+      playNoise(0.75, 0.14, 900, 'bandpass');
+    } else if (tp === 'jet_zoom') {
+      playSweep(320, 1450, 0.35, 'sawtooth', 0.14);
+      playNoise(0.35, 0.18, 1600, 'bandpass');
+    } else if (tp === 'mega_boom') {
+      playSweep(150, 32, 0.72, 'sine', 0.32);
+      playNoise(0.75, 0.28, 420, 'lowpass');
+    } else if (tp === 'fire_roar') {
+      playNoise(0.95, 0.22, 650, 'bandpass');
+      playNoise(0.90, 0.15, 2200, 'highpass', 0.08);
+    } else if (tp === 'muffled_mmmfff') {
+      for (let i = 0; i < 5; i++) playTone(210 + (i % 2) * 45, 0.09, 'triangle', 0.14, i * 0.10);
+    } else if (tp === 'ash_puff') {
+      playNoise(0.45, 0.18, 2200, 'bandpass');
+      playSweep(420, 180, 0.30, 'sine', 0.10);
+    } else if (tp === 'game_blip') {
+      [523, 659, 784, 523].forEach((f, i) => playTone(f, 0.08, 'square', 0.09, i * 0.09));
+    } else if (tp === 'magic_poof') {
+      playNoise(0.32, 0.22, 1600, 'bandpass');
+      [660, 880, 1175, 1568].forEach((f, i) => playTone(f, 0.16, 'sine', 0.14, i * 0.06));
+    } else if (tp === 'shrink_whistle') {
+      playSweep(320, 1650, 0.50, 'sine', 0.18);
+    } else if (tp === 'poop_horn') {
+      playSweep(190, 92, 0.42, 'sawtooth', 0.20);
+      playSweep(140, 68, 0.38, 'square', 0.11, 0.04);
+    } else if (tp === 'barf_blek') {
+      playSweep(280, 95, 0.52, 'sawtooth', 0.20);
+      playNoise(0.48, 0.20, 750, 'bandpass');
+    } else if (tp === 'ocean_wave') {
+      playNoise(0.95, 0.20, 520, 'lowpass');
+    } else if (tp === 'underwater_bubbles') {
+      for (let i = 0; i < 6; i++) playSweep(280 + i * 70, 720 + i * 85, 0.09, 'sine', 0.13, i * 0.11);
+    } else if (tp === 'evil_laugh') {
+      [310, 290, 275, 320, 285, 260, 240, 220].forEach((f, i) => playTone(f, 0.085, 'sawtooth', 0.12, i * 0.105));
+    } else if (tp === 'rage_arggh') {
+      playSweep(460, 720, 0.45, 'sawtooth', 0.15);
+    }
+  }
+
+  // =========================================================================
+  // PLAYER STATE & UI
+  // =========================================================================
+  const stageEl = document.getElementById('stage');
+  const sceneBadge = document.getElementById('sceneBadge');
+  const timeReadout = document.getElementById('timeReadout');
+  const scrubber = document.getElementById('scrubber');
+  const playOverlay = document.getElementById('playOverlay');
+  const btnPlay = document.getElementById('btnPlay');
+  const playIcon = document.getElementById('playIcon');
+  const playLabel = document.getElementById('playLabel');
+  const btnRestart = document.getElementById('btnRestart');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const btnMute = document.getElementById('btnMute');
+  const speedSelect = document.getElementById('speedSelect');
+  const sceneGrid = document.getElementById('sceneGrid');
+
+  let currentTime = 0, playing = false, speed = 1.0, lastFrameTs = null;
+  let firedCues = new Set(), activeSceneIdx = -1, hasInteracted = false;
+
+  SCENES.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'scene-pill';
+    btn.dataset.idx = i;
+    btn.textContent = s.panelNum === null ? 'Cover' : `${s.panelNum}. ${s.title}`;
+    btn.title = s.panelNum === null ? 'Cover' : `Panel ${s.panelNum}: ${s.title}`;
+    btn.addEventListener('click', () => {
+      ensureAudio();
+      playOverlay.style.opacity = '0';
+      playOverlay.style.pointerEvents = 'none';
+      seekTo(s.start + 0.01);
+      setPlaying(true);
+    });
+    sceneGrid.appendChild(btn);
+  });
+
+  const fmtTime = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+
+  function updateUI() {
+    const { sceneIdx, localT } = timeToScene(currentTime);
+    const s = SCENES[sceneIdx];
+    stageEl.innerHTML = renderScene(sceneIdx, localT);
+    sceneBadge.textContent = `${s.panelNum === null ? 'Cover' : 'Panel ' + s.panelNum} • ${sceneIdx + 1} / ${SCENES.length}`;
+    timeReadout.textContent = `${fmtTime(currentTime)} / ${fmtTime(TOTAL_DURATION)}`;
+    scrubber.value = Math.round((currentTime / TOTAL_DURATION) * 1000);
+    if (sceneIdx !== activeSceneIdx) {
+      activeSceneIdx = sceneIdx;
+      for (const el of sceneGrid.children) {
+        const isCur = Number(el.dataset.idx) === sceneIdx;
+        el.className = isCur ? 'scene-pill active' : 'scene-pill';
+      }
+      if (hasInteracted && window.WeirdGuyProgress) {
+        window.WeirdGuyProgress.save('10', sceneIdx, SCENES.length, currentTime >= TOTAL_DURATION - 0.1);
+      }
+    }
+  }
+
+  function seekTo(t) {
+    hasInteracted = true;
+    currentTime = clamp(t, 0, TOTAL_DURATION);
+    firedCues = new Set();
+    for (const c of AUDIO_CUES) if (c.globalT < currentTime - 0.05) firedCues.add(c.id);
+    updateUI();
+  }
+
+  function setPlaying(val) {
+    playing = val;
+    playIcon.innerHTML = playing ? '&#10074;&#10074;' : '&#9654;';
+    playLabel.textContent = playing ? 'Pause' : 'Play';
+    if (playing) {
+      hasInteracted = true;
+      ensureAudio();
+      playOverlay.style.opacity = '0';
+      playOverlay.style.pointerEvents = 'none';
+      if (currentTime >= TOTAL_DURATION - 0.05) seekTo(0);
+      lastFrameTs = performance.now();
+      requestAnimationFrame(tick);
+    }
+  }
+
+  function tick(now) {
+    if (!playing) return;
+    const dt = Math.min(0.08, (now - lastFrameTs) / 1000) * speed;
+    lastFrameTs = now;
+    currentTime = Math.min(TOTAL_DURATION, currentTime + dt);
+    for (const c of AUDIO_CUES) {
+      if (!firedCues.has(c.id) && c.globalT <= currentTime) {
+        firedCues.add(c.id);
+        triggerCue(c);
+      }
+    }
+    updateUI();
+    if (currentTime >= TOTAL_DURATION) {
+      if (window.WeirdGuyProgress) window.WeirdGuyProgress.save('10', SCENES.length - 1, SCENES.length, true);
+      setPlaying(false);
+    }
+    else requestAnimationFrame(tick);
+  }
+
+  btnPlay.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('stageContainer').addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('overlayPlayBtn').addEventListener('click', (e) => { e.stopPropagation(); setPlaying(true); });
+  btnRestart.addEventListener('click', () => { seekTo(0); setPlaying(true); });
+  btnPrev.addEventListener('click', () => seekTo(SCENES[Math.max(0, activeSceneIdx - 1)].start + 0.01));
+  btnNext.addEventListener('click', () => seekTo(SCENES[Math.min(SCENES.length - 1, activeSceneIdx + 1)].start + 0.01));
+  scrubber.addEventListener('input', () => seekTo((Number(scrubber.value) / 1000) * TOTAL_DURATION));
+  speedSelect.addEventListener('change', () => { speed = Number(speedSelect.value) || 1; });
+  btnMute.addEventListener('click', () => {
+    muted = !muted;
+    btnMute.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound On';
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+    if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+    else if (e.code === 'ArrowLeft') { e.preventDefault(); btnPrev.click(); }
+    else if (e.code === 'ArrowRight') { e.preventDefault(); btnNext.click(); }
+    else if (e.key === 'm' || e.key === 'M') { btnMute.click(); }
+  });
+
+  window.WeirdGuyVolume = {
+    id: '10',
+    number: 10,
+    title: "Let's Time Travel!!!",
+    edition: 'Blank Edition!!!',
+    author: 'superbear1859',
+    scenes: SCENES,
+    renderScene: renderScene
+  };
+
+  const initialScene = window.WeirdGuyProgress ? window.WeirdGuyProgress.getInitialSceneFromHash(SCENES.length) : null;
+  if (initialScene !== null && initialScene > 0) {
+    currentTime = SCENES[initialScene].start + 0.01;
+    updateUI();
+  } else {
+    currentTime = 3.2;
+    updateUI();
+    currentTime = 0;
+    scrubber.value = 0;
+    timeReadout.textContent = `0:00 / ${fmtTime(TOTAL_DURATION)}`;
+  }
+})();
+</script>
+  <script src="../../assets/print.js?v=2"></script>
+</body>
+</html>

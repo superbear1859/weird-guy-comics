@@ -26,7 +26,8 @@ weird-guy-comics/
     ├── 06/index.html      # Volume #6: I Don't Know What to Name the Title...
     ├── 07/index.html      # Volume #7: Folding Chairs Are Weird Too!
     ├── 08/index.html      # Volume #8: I Once Saw a Poop and Found a Guy Who Said...
-    └── 09/index.html      # Volume #9: Poop!!!
+    ├── 09/index.html      # Volume #9: Poop!!!
+    └── 10/index.html      # Volume #10: Let's Time Travel!!!
 ```
 
 ## Adding a New Volume (e.g., Volume #5)
