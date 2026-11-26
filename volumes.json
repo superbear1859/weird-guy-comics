@@ -134,6 +134,19 @@
       "badgeColor": "#22D3EE",
       "coverAccent": "#0891B2",
       "coverTag": "Vol. 10"
+    },
+    {
+      "id": "11",
+      "number": 11,
+      "title": "Is He Dead in the Future??",
+      "edition": "Blank Edition!!!",
+      "description": "Still stuck in the future, the Weird Guy finds a 'RIP The Wired Guy' grave, meets his high-tech Future & Ultra-Future Mech selves, and gets zapped back to a folding-chair ambush!",
+      "panels": 16,
+      "duration": "1:01",
+      "path": "volumes/11/",
+      "badgeColor": "#818CF8",
+      "coverAccent": "#4F46E5",
+      "coverTag": "Vol. 11"
     }
   ]
 }

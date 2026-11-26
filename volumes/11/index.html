@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Weird Guy #11: Is He Dead in the Future?? — Animated Comic by superbear1859</title>
+  <link rel="stylesheet" href="../../assets/reader.css?v=2" />
+</head>
+<body>
+  <div class="wrap">
+    <nav id="seriesNav" class="series-nav" aria-label="Series navigation"></nav>
+
+    <div class="topbar">
+      <div>
+        <div class="title-row">
+          <span class="badge-num" style="background: #818CF8;">#11</span>
+          <h1>The Weird Guy: Is He Dead in the Future??</h1>
+        </div>
+        <div class="subtitle">Blank Edition!!! &bull; By superbear1859 &bull; Animated Comic with Cartoon SFX</div>
+      </div>
+      <div class="meta-row">
+        <span id="sceneBadge" class="pill-badge">Cover &bull; 1 / 16</span>
+        <span id="timeReadout" class="time-txt">0:00 / 1:01</span>
+      </div>
+    </div>
+
+    <div class="card stage-wrap">
+      <div class="comic-stage-shell" id="stageContainer" title="Click to Play / Pause">
+        <div id="stage" style="width:100%;height:100%;"></div>
+        <div id="playOverlay">
+          <button id="overlayPlayBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+            Watch Animated Comic #11 (with Sound!)
+          </button>
+          <span class="overlay-hint">Click anywhere or press Space</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <input id="scrubber" type="range" min="0" max="1000" value="0" step="1" aria-label="Animation timeline" />
+        <div class="btn-bar">
+          <div class="btn-group">
+            <button id="btnPlay" class="btn-primary"><span id="playIcon">&#9654;</span><span id="playLabel">Play</span></button>
+            <button id="btnRestart" class="btn-sec" title="Restart from Cover">&#8634; Restart</button>
+            <button id="btnPrev" class="btn-sec" title="Previous Panel (Left Arrow)">&#9664; Prev</button>
+            <button id="btnNext" class="btn-sec" title="Next Panel (Right Arrow)">Next &#9654;</button>
+          </div>
+          <div class="btn-group">
+            <label class="speed-lbl">Speed
+              <select id="speedSelect">
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+              </select>
+            </label>
+            <button id="btnMute" class="btn-sec" title="Toggle Sound Effects (M)">&#128266; Sound On</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="grid-head">
+        <span>Jump to Panel</span>
+        <span>Shortcuts: Space (Play) &bull; &larr;/&rarr; (Panels) &bull; M (Mute)</span>
+      </div>
+      <div id="sceneGrid"></div>
+    </div>
+
+    <div id="bottomVolNav" class="bottom-vol-nav"></div>
+  </div>
+
+  <script src="../../assets/nav.js?v=2" data-volume-id="11"></script>
+<script>
+/* ============================================================================
+ * THE WEIRD GUY #11: Is He Dead in the Future?? (Blank Edition!!!) — By superbear1859
+ * Self-Contained Hand-Drawn SVG Comic Engine + Web Audio Cartoon SFX Engine
+ * ============================================================================ */
+(function () {
+  'use strict';
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const INK = '#1E1B24';
+  const PAPER = '#FFFEFA';
+  const FONT = "'Humor Sans', 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive, sans-serif";
+
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const invLerp = (a, b, v) => clamp((v - a) / (b - a), 0, 1);
+  const easeOutCubic = t => 1 - Math.pow(1 - clamp(t), 3);
+  const easeInOutCubic = t => {
+    t = clamp(t);
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  };
+  const easeOutBack = (t, s = 1.70158) => {
+    t = clamp(t) - 1;
+    return 1 + (s + 1) * t * t * t + s * t * t;
+  };
+  const easeOutBounce = t => {
+    t = clamp(t);
+    const n1 = 7.5625, d1 = 2.75;
+    if (t < 1 / d1) return n1 * t * t;
+    if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
+    if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
+    return n1 * (t -= 2.625 / d1) * t + 0.984375;
+  };
+
+  const SCENES = [
+    { id: 'cover',   panelNum: null, title: 'Cover',               duration: 4.2 },
+    { id: 'panel1',  panelNum: 1,    title: 'RIP Wired Guy?!',     duration: 3.4 },
+    { id: 'panel2',  panelNum: 2,    title: 'Future Weird Guy!',   duration: 4.1 },
+    { id: 'panel3',  panelNum: 3,    title: 'The WIRED Guy!',      duration: 4.0 },
+    { id: 'panel4',  panelNum: 4,    title: 'Making Hologram!',    duration: 4.0 },
+    { id: 'panel5',  panelNum: 5,    title: 'I Told Myself!!!',    duration: 3.8 },
+    { id: 'panel6',  panelNum: 6,    title: 'Time Paradox!',       duration: 4.0 },
+    { id: 'panel7',  panelNum: 7,    title: 'Double Time Zap!',    duration: 3.7 },
+    { id: 'panel8',  panelNum: 8,    title: 'Ultra-Future Mech!',  duration: 4.2 },
+    { id: 'panel9',  panelNum: 9,    title: 'Not High Tech!',      duration: 3.8 },
+    { id: 'panel10', panelNum: 10,   title: 'Chom! Shrap!',        duration: 3.4 },
+    { id: 'panel11', panelNum: 11,   title: 'Shoom! Shing!',       duration: 3.4 },
+    { id: 'panel12', panelNum: 12,   title: 'Zap! Bye!!!',         duration: 3.9 },
+    { id: 'panel13', panelNum: 13,   title: 'Back to Present!',    duration: 3.7 },
+    { id: 'panel14', panelNum: 14,   title: 'Kick!!! Ow Ow!',      duration: 3.7 },
+    { id: 'panel15', panelNum: 15,   title: 'The End',             duration: 4.1 }
+  ];
+
+  let acc = 0;
+  for (const s of SCENES) { s.start = acc; acc += s.duration; s.end = acc; }
+  const TOTAL_DURATION = acc;
+
+  const AUDIO_CUES = [
+    { sceneIdx: 0, localT: 0.08, type: 'intro_jingle' },
+    { sceneIdx: 0, localT: 1.25, type: 'weird_talk', count: 4, pitch: 580 },
+    { sceneIdx: 0, localT: 2.15, type: 'weird_talk', count: 6, pitch: 540 },
+    { sceneIdx: 1, localT: 0.35, type: 'dramatic_chord' },
+    { sceneIdx: 1, localT: 0.95, type: 'weird_yell', pitch: 600 },
+    { sceneIdx: 2, localT: 0.25, type: 'robot_beep' },
+    { sceneIdx: 2, localT: 0.95, type: 'weird_yell', pitch: 650 },
+    { sceneIdx: 2, localT: 1.75, type: 'future_talk', count: 6 },
+    { sceneIdx: 3, localT: 0.35, type: 'weird_talk', count: 5, pitch: 620 },
+    { sceneIdx: 3, localT: 1.25, type: 'mech_chika' },
+    { sceneIdx: 3, localT: 1.75, type: 'future_talk', count: 5 },
+    { sceneIdx: 4, localT: 0.25, type: 'mech_chika' },
+    { sceneIdx: 4, localT: 0.85, type: 'hologram_hum' },
+    { sceneIdx: 4, localT: 1.75, type: 'weird_talk', count: 3, pitch: 520 },
+    { sceneIdx: 5, localT: 0.35, type: 'weird_talk', count: 5, pitch: 600 },
+    { sceneIdx: 5, localT: 1.15, type: 'shoom_retract' },
+    { sceneIdx: 5, localT: 1.75, type: 'future_talk', count: 5 },
+    { sceneIdx: 6, localT: 0.35, type: 'weird_talk', count: 6, pitch: 610 },
+    { sceneIdx: 6, localT: 1.55, type: 'future_talk', count: 7 },
+    { sceneIdx: 7, localT: 0.35, type: 'time_zap' },
+    { sceneIdx: 7, localT: 1.35, type: 'weird_yell', pitch: 640 },
+    { sceneIdx: 8, localT: 0.15, type: 'mech_reveal' },
+    { sceneIdx: 8, localT: 0.85, type: 'robot_beep' },
+    { sceneIdx: 8, localT: 1.55, type: 'weird_talk', count: 4, pitch: 620 },
+    { sceneIdx: 9, localT: 0.35, type: 'weird_talk', count: 5, pitch: 580 },
+    { sceneIdx: 9, localT: 1.15, type: 'mech_chika' },
+    { sceneIdx: 9, localT: 1.65, type: 'shoom_retract' },
+    { sceneIdx: 10, localT: 0.25, type: 'mech_chika' },
+    { sceneIdx: 10, localT: 0.95, type: 'shoom_retract' },
+    { sceneIdx: 11, localT: 0.25, type: 'shoom_retract' },
+    { sceneIdx: 11, localT: 0.85, type: 'shing_blade' },
+    { sceneIdx: 12, localT: 0.35, type: 'time_zap' },
+    { sceneIdx: 12, localT: 1.15, type: 'weird_yell', pitch: 650 },
+    { sceneIdx: 12, localT: 1.85, type: 'future_talk', count: 3 },
+    { sceneIdx: 13, localT: 0.15, type: 'narrator_talk', count: 6, pitch: 210 },
+    { sceneIdx: 13, localT: 1.05, type: 'chair_clatter' },
+    { sceneIdx: 14, localT: 0.20, type: 'giggle' },
+    { sceneIdx: 14, localT: 0.55, type: 'kick_whack' },
+    { sceneIdx: 14, localT: 0.95, type: 'chair_clatter' },
+    { sceneIdx: 14, localT: 1.55, type: 'weird_talk', count: 6, pitch: 680 },
+    { sceneIdx: 15, localT: 0.50, type: 'outro_jingle' },
+    { sceneIdx: 15, localT: 1.65, type: 'weird_yell', pitch: 620 }
+  ].map((c, idx) => ({ ...c, id: idx, globalT: SCENES[c.sceneIdx].start + c.localT }));
+
+  // --- SVG Primitives ---
+  const esc = str => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  function svgText(x, y, text, opts = {}) {
+    const { size = 28, weight = '700', fill = INK, anchor = 'middle', rot = 0, opacity = 1, stroke = 'none', strokeWidth = 0, letterSpacing = 0.3 } = opts;
+    if (opacity <= 0.005) return '';
+    const tf = rot ? ` transform="rotate(${rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"` : '';
+    const st = stroke !== 'none' ? ` stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" paint-order="stroke"` : '';
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="${FONT}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" letter-spacing="${letterSpacing}" opacity="${opacity.toFixed(3)}"${st}${tf}>${esc(text)}</text>`;
+  }
+
+  function svgMultiText(x, y, lines, opts = {}) {
+    const lineH = opts.lineHeight || (opts.size || 24) * 1.18;
+    const startY = y - ((lines.length - 1) * lineH) / 2;
+    return lines.map((line, i) => svgText(x, startY + i * lineH, line, opts)).join('');
+  }
+
+  function speechBubble(opts) {
+    const { cx, cy, rx, ry, tailX, tailY, tail2X, tail2Y, lines = [], fontSize = 22, lineHeight, fill = '#FFFFFF', stroke = INK, strokeWidth = 3.2, textColor = INK, spiky = false, scale = 1, opacity = 1, rot = 0 } = opts;
+    if (opacity <= 0.005 || scale <= 0.01) return '';
+    const makeTail = (tx, ty) => {
+      if (tx === undefined || ty === undefined) return { tail: '', mask: '' };
+      const dx = tx - cx, dy = ty - cy, ang = Math.atan2(dy, dx);
+      const b1x = Math.cos(ang - 0.22) * rx * 0.84, b1y = Math.sin(ang - 0.22) * ry * 0.84;
+      const b2x = Math.cos(ang + 0.22) * rx * 0.84, b2y = Math.sin(ang + 0.22) * ry * 0.84;
+      const midX = (b1x + b2x) * 0.35 + dx * 0.35, midY = (b1y + b2y) * 0.35 + dy * 0.35;
+      return {
+        tail: `<path d="M ${b1x.toFixed(1)} ${b1y.toFixed(1)} Q ${midX.toFixed(1)} ${midY.toFixed(1)} ${dx.toFixed(1)} ${dy.toFixed(1)} Q ${(midX + (b2x - b1x) * 0.3).toFixed(1)} ${(midY + (b2y - b1y) * 0.3).toFixed(1)} ${b2x.toFixed(1)} ${b2y.toFixed(1)}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round"/>`,
+        mask: `<path d="M ${(b1x * 0.94).toFixed(1)} ${(b1y * 0.94).toFixed(1)} L ${(dx * 0.78).toFixed(1)} ${(dy * 0.78).toFixed(1)} L ${(b2x * 0.94).toFixed(1)} ${(b2y * 0.94).toFixed(1)} Z" fill="${fill}" stroke="none"/>`
+      };
+    };
+    const t1 = makeTail(tailX, tailY);
+    const t2 = makeTail(tail2X, tail2Y);
+    let shape = '';
+    if (spiky) {
+      const spikes = 16, pts = [];
+      for (let i = 0; i < spikes * 2; i++) {
+        const a = (i / (spikes * 2)) * Math.PI * 2;
+        const m = i % 2 === 0 ? 1.12 : 0.88;
+        pts.push(`${(Math.cos(a) * rx * m).toFixed(1)},${(Math.sin(a) * ry * m).toFixed(1)}`);
+      }
+      shape = `${t1.tail}${t2.tail}<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>`;
+    } else {
+      const k = 0.55228;
+      const d = [
+        `M 0 ${(-ry).toFixed(1)}`,
+        `C ${(rx * k * 1.03).toFixed(1)} ${(-ry * 0.99).toFixed(1)}, ${(rx * 1.02).toFixed(1)} ${(-ry * k).toFixed(1)}, ${(rx * 0.99).toFixed(1)} 0`,
+        `C ${(rx * 1.01).toFixed(1)} ${(ry * k * 1.02).toFixed(1)}, ${(rx * k).toFixed(1)} ${(ry * 1.02).toFixed(1)}, 0 ${(ry * 0.99).toFixed(1)}`,
+        `C ${(-rx * k * 1.02).toFixed(1)} ${(ry * 1.01).toFixed(1)}, ${(-rx * 1.02).toFixed(1)} ${(ry * k).toFixed(1)}, ${(-rx * 0.99).toFixed(1)} 0`,
+        `C ${(-rx * 1.01).toFixed(1)} ${(-ry * k * 1.02).toFixed(1)}, ${(-rx * k).toFixed(1)} ${(-ry * 1.02).toFixed(1)}, 0 ${(-ry).toFixed(1)} Z`
+      ].join(' ');
+      shape = `${t1.tail}${t2.tail}<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linejoin="round"/>${t1.mask}${t2.mask}`;
+    }
+    const txt = svgMultiText(0, 6, lines, { size: fontSize, lineHeight: lineHeight || fontSize * 1.15, fill: textColor });
+    return `<g transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})" opacity="${opacity.toFixed(3)}">${shape}${txt}</g>`;
+  }
+
+  function handArrow(x1, y1, x2, y2, cx, cy, color = INK) {
+    const ang = Math.atan2(y2 - cy, x2 - cx), len = 12;
+    return `<g stroke="${color}" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}"/>
+      <path d="M ${(x2 - Math.cos(ang - 0.5) * len).toFixed(1)} ${(y2 - Math.sin(ang - 0.5) * len).toFixed(1)} L ${x2.toFixed(1)} ${y2.toFixed(1)} L ${(x2 - Math.cos(ang + 0.5) * len).toFixed(1)} ${(y2 - Math.sin(ang + 0.5) * len).toFixed(1)}"/>
+    </g>`;
+  }
+
+  // Canonical Weird Guy (V-shaped angry eyebrows, NO duplicate eyebrows!)
+  function weirdGuy(opts = {}) {
+    const { x = 300, y = 500, scale = 1, rot = 0, eyes = 'normal', mouth = 'open', arms = 'out', t = 0, opacity = 1 } = opts;
+    if (opacity <= 0.005) return '';
+    const mouthPulse = mouth === 'yell' ? 1 + Math.sin(t * 28) * 0.09 : 1;
+    const hw = Math.sin(t * 14) * 2.5;
+    const torso = `<path d="M -2 -8 C -16 -2, -16 44, 0 54 C 15 44, 15 -2, 2 -8 Z" fill="#FFF" stroke="${INK}" stroke-width="3.6" stroke-linejoin="round"/>`;
+    const legSvg = `<path d="M -5 51 Q -14 75 -22 98 M 5 51 Q 14 75 22 98" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" fill="none"/>`;
+    const armSvg = arms === 'up'
+      ? `<path d="M -11 12 L -50 -20 M 11 12 L 50 -16" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`
+      : `<path d="M -11 14 L -48 22 M 11 14 L 48 18" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+    const head = `<path d="M 0 -92 C 26 -93, 44 -74, 42 -48 C 43 -22, 24 -7, 0 -8 C -25 -7, -43 -23, -42 -49 C -43 -75, -24 -92, 0 -92 Z" fill="#FFF" stroke="${INK}" stroke-width="3.8" stroke-linejoin="round"/>`;
+    const eyebrows = `<path d="M ${(-18 + hw * 0.4).toFixed(1)} -124 L -1 -90 L ${(19 + hw * 0.4).toFixed(1)} -126" fill="none" stroke="${INK}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+    let eyeSvg = `<path d="M -12 -75 L -11 -56 M 12 -75 L 13 -56" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`;
+    if (eyes === 'angry') eyeSvg = `<path d="M -14 -76 L -12 -55 M 14 -76 L 12 -55" stroke="${INK}" stroke-width="4.2" stroke-linecap="round"/>`;
+    else if (eyes === 'squint') eyeSvg = `<path d="M -22 -70 L -10 -62 L -22 -54 M 22 -70 L 10 -62 L 22 -54" fill="none" stroke="${INK}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const mouthSvg = mouth === 'yell'
+      ? `<g transform="translate(0 -34) scale(1 ${mouthPulse.toFixed(3)})"><ellipse cx="0" cy="0" rx="14" ry="20" fill="${INK}"/><ellipse cx="0" cy="10" rx="8" ry="6" fill="#DC2626" opacity="0.85"/></g>`
+      : `<ellipse cx="0" cy="-36" rx="12" ry="17" fill="${INK}"/>`;
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})" opacity="${opacity.toFixed(3)}">
+      ${legSvg}${torso}${armSvg}${head}${eyebrows}${eyeSvg}${mouthSvg}
+    </g>`;
+  }
+
+  // Future Weird Guy (visor, chest button panel, optional square helmet & rocket boots!)
+  function futureWeirdGuy({ x = 300, y = 500, scale = 1, helmet = true, boots = true, t = 0 }) {
+    const hw = Math.sin(t * 14) * 2;
+    const fl = 0.85 + 0.25 * Math.sin(t * 30);
+    const bootsSvg = boots ? `
+      <g transform="translate(-22 98)">
+        <ellipse cx="0" cy="0" rx="14" ry="7" fill="${INK}"/>
+        <path d="M -12 4 L -6 ${(28 * fl).toFixed(1)} L 0 ${(16 * fl).toFixed(1)} L 6 ${(28 * fl).toFixed(1)} L 12 4 Z" fill="#F97316" stroke="#DC2626" stroke-width="2"/>
+      </g>
+      <g transform="translate(22 98)">
+        <ellipse cx="0" cy="0" rx="14" ry="7" fill="${INK}"/>
+        <path d="M -12 4 L -6 ${(28 * fl).toFixed(1)} L 0 ${(16 * fl).toFixed(1)} L 6 ${(28 * fl).toFixed(1)} L 12 4 Z" fill="#F97316" stroke="#DC2626" stroke-width="2"/>
+      </g>` : '';
+    const helmetSvg = helmet ? `<rect x="-50" y="-100" width="100" height="98" rx="8" fill="#E0E7FF" fill-opacity="0.45" stroke="${INK}" stroke-width="3.2"/>` : '';
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${scale.toFixed(3)})">
+      ${bootsSvg}
+      <path d="M -5 51 Q -14 75 -22 98 M 5 51 Q 14 75 22 98" stroke="${INK}" stroke-width="3.6" stroke-linecap="round" fill="none"/>
+      <path d="M -2 -8 C -18 -2, -18 46, 0 56 C 18 46, 18 -2, 2 -8 Z" fill="#E2E8F0" stroke="${INK}" stroke-width="3.6"/>
+      <!-- High-tech chest button panel -->
+      <rect x="-8" y="4" width="16" height="36" rx="3" fill="#FFFFFF" stroke="${INK}" stroke-width="2.2"/>
+      <circle cx="0" cy="12" r="3" fill="#EF4444"/><circle cx="0" cy="22" r="3" fill="#22D3EE"/><circle cx="0" cy="32" r="3" fill="#22C55E"/>
+      <path d="M -13 14 L -48 20 M 13 14 L 48 18" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>
+      ${helmetSvg}
+      <path d="M 0 -92 C 26 -93, 44 -74, 42 -48 C 43 -22, 24 -7, 0 -8 C -25 -7, -43 -23, -42 -49 C -43 -75, -24 -92, 0 -92 Z" fill="#FFF" stroke="${INK}" stroke-width="3.8"/>
+      <path d="M ${(-18 + hw * 0.4).toFixed(1)} -124 L -1 -90 L ${(19 + hw * 0.4).toFixed(1)} -126" fill="none" stroke="${INK}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Sleek sci-fi visor! -->
+      <ellipse cx="0" cy="-64" rx="44" ry="15" fill="#1E1B24" stroke="#22D3EE" stroke-width="2.6"/>
+      <path d="M -24 -68 L 18 -68" stroke="#38BDF8" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+      <ellipse cx="0" cy="-32" rx="12" ry="16" fill="${INK}"/>
+    </g>`;
+  }
+
+  // Ultra-Future Weird Guy — Giant Mech (Panel 8) & Transforming Hover-Pod (Panels 9–12)!
+  function ultraFutureMech({ x = 445, y = 470, scale = 1, t = 0 }) {
+    const fl = 0.85 + 0.25 * Math.sin(t * 28);
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${scale.toFixed(3)})">
+      <!-- Antenna tower on top of head -->
+      <rect x="-26" y="-235" width="52" height="58" rx="4" fill="#CBD5E1" stroke="${INK}" stroke-width="3"/>
+      <line x1="-54" y1="-215" x2="54" y2="-215" stroke="${INK}" stroke-width="4"/>
+      <rect x="-64" y="-235" width="20" height="42" rx="3" fill="#94A3B8" stroke="${INK}" stroke-width="2.8"/>
+      <rect x="44" y="-235" width="20" height="42" rx="3" fill="#94A3B8" stroke="${INK}" stroke-width="2.8"/>
+      <line x1="0" y1="-262" x2="0" y2="-235" stroke="#22D3EE" stroke-width="4.5" stroke-linecap="round"/>
+      <!-- Shoulder Lava & Water Cannons! -->
+      <rect x="-112" y="-162" width="60" height="44" rx="6" fill="#F97316" stroke="${INK}" stroke-width="3.2"/>
+      <ellipse cx="-112" cy="-140" rx="10" ry="20" fill="${INK}"/>
+      <rect x="52" y="-162" width="60" height="44" rx="6" fill="#38BDF8" stroke="${INK}" stroke-width="3.2"/>
+      <ellipse cx="112" cy="-140" rx="10" ry="20" fill="${INK}"/>
+      <!-- Truss-frame mech body & grid wings -->
+      <rect x="-85" y="-58" width="170" height="72" rx="6" fill="#E0E7FF" stroke="${INK}" stroke-width="3"/>
+      <g stroke="#64748B" stroke-width="2.2"><line x1="-85" y1="-22" x2="85" y2="-22"/><line x1="-42" y1="-58" x2="-42" y2="14"/><line x1="42" y1="-58" x2="42" y2="14"/></g>
+      <polygon points="-28,-78 28,-78 36,115 -36,115" fill="#CBD5E1" stroke="${INK}" stroke-width="3.6"/>
+      <g stroke="#475569" stroke-width="2.6"><line x1="-26" y1="-60" x2="28" y2="-10"/><line x1="26" y1="-60" x2="-28" y2="-10"/><line x1="-30" y1="0" x2="32" y2="60"/><line x1="30" y1="0" x2="-32" y2="60"/></g>
+      <!-- Twin Mech Legs + Rocket Boosters -->
+      <polygon points="-36,115 -6,115 -24,225 -68,225" fill="#94A3B8" stroke="${INK}" stroke-width="3.4"/>
+      <polygon points="6,115 36,115 68,225 24,225" fill="#94A3B8" stroke="${INK}" stroke-width="3.4"/>
+      <path d="M -64 228 L -52 ${(265 * fl).toFixed(1)} L -38 ${(245 * fl).toFixed(1)} L -26 ${(265 * fl).toFixed(1)} L -24 228 Z" fill="#F97316" stroke="#DC2626" stroke-width="2.4"/>
+      <path d="M 24 228 L 36 ${(265 * fl).toFixed(1)} L 50 ${(245 * fl).toFixed(1)} L 62 ${(265 * fl).toFixed(1)} L 64 228 Z" fill="#F97316" stroke="#DC2626" stroke-width="2.4"/>
+      <!-- Square Mech Head with iconic V-Shaped Super Visor! -->
+      <rect x="-54" y="-178" width="108" height="104" rx="10" fill="#E2E8F0" stroke="${INK}" stroke-width="3.8"/>
+      <circle cx="0" cy="-124" r="42" fill="#FFF" stroke="${INK}" stroke-width="3.2"/>
+      <path d="M -16 -172 L 0 -148 L 16 -172" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>
+      <polygon points="-46,-152 0,-120 46,-152 38,-132 0,-102 -38,-132" fill="#1E1B24" stroke="#EF4444" stroke-width="2.4" stroke-linejoin="round"/>
+      <ellipse cx="0" cy="-98" rx="11" ry="14" fill="${INK}"/>
+    </g>`;
+  }
+
+  // Ultra-Future Hover-Pod stages (mode: 'tripod' | 'jets' | 'hover' | 'ray')
+  function ultraFuturePod({ x = 470, y = 500, scale = 1, mode = 'hover', t = 0 }) {
+    const fl = 0.85 + 0.22 * Math.sin(t * 28);
+    let bottomSvg = '';
+    if (mode === 'tripod') {
+      bottomSvg = `
+        <g stroke="${INK}" stroke-width="3.4">
+          <polygon points="-44,82 -26,82 -58,185 -76,185" fill="#94A3B8"/>
+          <polygon points="-10,82 10,82 12,185 -12,185" fill="#94A3B8"/>
+          <polygon points="26,82 44,82 76,185 58,185" fill="#94A3B8"/>
+        </g>
+        <path d="M -76 188 L -68 ${(224 * fl).toFixed(1)} L -56 188 Z" fill="#F97316" stroke="#DC2626" stroke-width="2"/>
+        <path d="M -10 188 L 0 ${(228 * fl).toFixed(1)} L 10 188 Z" fill="#F97316" stroke="#DC2626" stroke-width="2"/>
+        <path d="M 56 188 L 68 ${(224 * fl).toFixed(1)} L 76 188 Z" fill="#F97316" stroke="#DC2626" stroke-width="2"/>
+        <circle cx="0" cy="36" r="44" fill="#E0E7FF" stroke="${INK}" stroke-width="3"/>
+        <path d="M -44 36 L 44 36 M 0 -8 L 0 80 M -31 5 L 31 67 M 31 5 L -31 67" stroke="${INK}" stroke-width="2.4"/>`;
+    } else if (mode === 'jets') {
+      bottomSvg = `
+        <g transform="translate(-32 76)">
+          <circle cx="0" cy="0" r="24" fill="#64748B" stroke="${INK}" stroke-width="3"/>
+          <circle cx="0" cy="0" r="10" fill="#22D3EE"/>
+          <path d="M -18 22 L 0 ${(64 * fl).toFixed(1)} L 18 22 Z" fill="#F97316" stroke="#DC2626" stroke-width="2.4"/>
+        </g>
+        <g transform="translate(32 76)">
+          <circle cx="0" cy="0" r="24" fill="#64748B" stroke="${INK}" stroke-width="3"/>
+          <circle cx="0" cy="0" r="10" fill="#22D3EE"/>
+          <path d="M -18 22 L 0 ${(64 * fl).toFixed(1)} L 18 22 Z" fill="#F97316" stroke="#DC2626" stroke-width="2.4"/>
+        </g>`;
+    } else {
+      bottomSvg = `
+        <ellipse cx="0" cy="76" rx="58" ry="16" fill="#1E1B24" stroke="${INK}" stroke-width="3"/>
+        <path d="M -44 82 L -36 ${(168 * fl).toFixed(1)} L -14 ${(132 * fl).toFixed(1)} L 0 ${(182 * fl).toFixed(1)} L 16 ${(132 * fl).toFixed(1)} L 38 ${(168 * fl).toFixed(1)} L 44 82 Z"
+              fill="#38BDF8" stroke="#0284C7" stroke-width="3" opacity="0.88"/>
+        <path d="M -22 84 L 0 ${(146 * fl).toFixed(1)} L 22 84 Z" fill="#FEF08A"/>`;
+    }
+
+    const rayTurret = mode === 'ray' ? `
+      <g transform="translate(12 -118) rotate(-14)">
+        <rect x="-24" y="-38" width="48" height="62" rx="6" fill="#ECFEFF" stroke="${INK}" stroke-width="3.2"/>
+        <ellipse cx="0" cy="-38" rx="22" ry="9" fill="${INK}"/>
+        ${svgMultiText(0, -4, ['Time', 'ray'], { size: 15, lineHeight: 16, fill: '#0891B2' })}
+      </g>` : '';
+
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${scale.toFixed(3)})">
+      ${rayTurret}
+      ${bottomSvg}
+      <!-- Sleek domed hover-pod hull -->
+      <path d="M -62 74 L -62 -36 C -62 -118, 62 -118, 62 -36 L 62 74 Z" fill="#E2E8F0" stroke="${INK}" stroke-width="3.8" stroke-linejoin="round"/>
+      <line x1="-62" y1="-8" x2="62" y2="-8" stroke="${INK}" stroke-width="3"/>
+      <!-- Ultra-Future face inside dome -->
+      <circle cx="0" cy="-54" r="36" fill="#FFF" stroke="${INK}" stroke-width="3"/>
+      <path d="M -14 -96 L 0 -76 L 14 -96" fill="none" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/>
+      <polygon points="-36,-76 0,-48 36,-76 28,-58 0,-34 -28,-58" fill="#1E1B24" stroke="#EF4444" stroke-width="2.2" stroke-linejoin="round"/>
+      <ellipse cx="0" cy="-26" rx="9" ry="11" fill="${INK}"/>
+    </g>`;
+  }
+
+  // Tombstone: "RIP The wired guy" (Panels 1, 2, 3, 5, 6, 7!)
+  function tombstone({ x = 350, y = 620, scale = 1 }) {
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${scale.toFixed(3)})">
+      <!-- Cross on top -->
+      <path d="M -16 -145 L 16 -145 L 16 -105 L 54 -105 L 54 -75 L 16 -75 L 16 -40 L -16 -40 L -16 -75 L -54 -75 L -54 -105 L -16 -105 Z"
+            fill="#CBD5E1" stroke="${INK}" stroke-width="3.6" stroke-linejoin="round"/>
+      <!-- Rounded stone slab -->
+      <path d="M -68 95 L -68 -10 C -68 -55, 68 -55, 68 -10 L 68 95 Z" fill="#E2E8F0" stroke="${INK}" stroke-width="3.8" stroke-linejoin="round"/>
+      <line x1="-92" y1="95" x2="92" y2="95" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+      ${svgMultiText(0, 26, ['RIP', 'The', 'wired', 'guy'], { size: 28, lineHeight: 30, fill: '#334155' })}
+    </g>`;
+  }
+
+  function foldingChair({ x = 300, y = 500, scale = 1, rot = 0, seatColor = '#60A5FA' }) {
+    return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${scale.toFixed(3)})">
+      <g stroke="#475569" stroke-width="5.2" stroke-linecap="round">
+        <line x1="-82" y1="0" x2="-22" y2="88"/><line x1="-18" y1="0" x2="-88" y2="88"/>
+        <line x1="18" y1="0" x2="88" y2="88"/><line x1="82" y1="0" x2="22" y2="88"/>
+      </g>
+      <g stroke="${INK}" stroke-width="2.2" stroke-linecap="round">
+        <line x1="-82" y1="0" x2="-22" y2="88"/><line x1="-18" y1="0" x2="-88" y2="88"/>
+        <line x1="18" y1="0" x2="88" y2="88"/><line x1="82" y1="0" x2="22" y2="88"/>
+      </g>
+      <rect x="-112" y="-8" width="224" height="15" rx="6" fill="${seatColor}" stroke="${INK}" stroke-width="3.4"/>
+    </g>`;
+  }
+
+  function prankster({ x, y, scale = 1, kick = 0, t = 0 }) {
+    const bob = Math.sin(t * 8) * 2.5;
+    const legsSvg = kick > 0.01
+      ? `<path d="M -4 38 L -18 76 M 4 38 Q 34 48 ${(56 + kick * 28).toFixed(1)} ${(16 - kick * 24).toFixed(1)}" fill="none" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`
+      : `<path d="M -4 38 L -20 76 M 4 38 L 20 76" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
+    return `<g transform="translate(${x.toFixed(1)} ${(y + bob).toFixed(1)}) scale(${scale.toFixed(3)})">
+      ${legsSvg}
+      <ellipse cx="0" cy="18" rx="10" ry="24" fill="#FFF" stroke="${INK}" stroke-width="3.4"/>
+      <path d="M -10 10 L -38 -4 M 10 10 L 38 -2" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>
+      <circle cx="0" cy="-28" r="28" fill="#FFF" stroke="${INK}" stroke-width="3.6"/>
+      <path d="M -8 -39 L -8 -24 M 8 -39 L 8 -24" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M -15 -20 Q 0 -4 15 -20" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>
+    </g>`;
+  }
+
+  function wrapPanel(innerSvg, { panelNum = null, shakeX = 0, shakeY = 0, bg = PAPER } = {}) {
+    const badge = panelNum !== null
+      ? `<g opacity="0.78"><rect x="20" y="786" width="38" height="32" rx="7" fill="#FFF" stroke="${INK}" stroke-width="2.4"/>${svgText(39, 810, String(panelNum), { size: 21 })}</g>`
+      : '';
+    return `<svg xmlns="${NS}" viewBox="0 0 600 840" width="100%" height="100%" style="background:${bg};">
+      <defs>
+        <clipPath id="pc11"><rect x="12" y="12" width="576" height="816" rx="4"/></clipPath>
+        <pattern id="ht11" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="1.2" fill="#94A3B8" opacity="0.12"/></pattern>
+      </defs>
+      <rect x="0" y="0" width="600" height="840" fill="${bg}"/>
+      <rect x="12" y="12" width="576" height="816" fill="url(#ht11)"/>
+      <g clip-path="url(#pc11)"><g transform="translate(${shakeX.toFixed(1)} ${shakeY.toFixed(1)})">${innerSvg}</g></g>
+      <rect x="10" y="10" width="580" height="820" rx="6" fill="none" stroke="${INK}" stroke-width="4.2"/>
+      ${badge}
+    </svg>`;
+  }
+
+  function renderScene(sceneIdx, localT) {
+    const s = SCENES[sceneIdx];
+    const t = clamp(localT, 0, s.duration);
+    let out = '', shakeX = 0, shakeY = 0, bg = PAPER;
+
+    switch (sceneIdx) {
+      case 0: { // COVER — "#11 Blank edition!!! The weird guy: Is he dead in the future??"
+        const bS = easeOutBack(invLerp(0.05, 0.45, t));
+        const tOp = invLerp(0.18, 0.55, t);
+        const gY = lerp(690, 520, easeOutBack(invLerp(0.4, 1.0, t))) + Math.sin(t * 5) * 3;
+        const aOp = invLerp(2.4, 2.9, t);
+
+        out += `<circle cx="255" cy="495" r="142" fill="#E0E7FF" opacity="0.65"/>`;
+        out += `<g transform="translate(76 68) scale(${bS.toFixed(3)})"><circle cx="0" cy="0" r="36" fill="#818CF8" stroke="${INK}" stroke-width="3.6"/>${svgText(0, 11, '#11', { size: 30 })}</g>`;
+        out += `<g transform="translate(338 68) scale(${bS.toFixed(3)})"><ellipse cx="0" cy="0" rx="176" ry="33" fill="#EEF2FF" stroke="${INK}" stroke-width="3.4"/>${svgText(0, 10, 'Blank edition!!!', { size: 28 })}</g>`;
+
+        out += `<g opacity="${tOp.toFixed(3)}">
+          ${svgText(300, 168, 'The weird guy:', { size: 52 })}
+          ${svgMultiText(300, 248, ['Is he dead', 'in the future??'], { size: 46, lineHeight: 54, fill: '#4F46E5' })}
+        </g>`;
+
+        out += weirdGuy({ x: 255, y: gY, scale: 1.15, arms: 'out', eyes: 'angry', mouth: 'open', t });
+        out += speechBubble({
+          cx: 455, cy: 382, rx: 102, ry: 68,
+          tailX: 315, tailY: 452,
+          lines: ['Uh-oh!!!'],
+          fontSize: 38, scale: easeOutBack(invLerp(1.15, 1.65, t)), fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+        out += speechBubble({
+          cx: 318, cy: 705, rx: 162, ry: 58,
+          tailX: 258, tailY: 625,
+          lines: ["I'm still in", 'the future!!!'],
+          fontSize: 28, scale: easeOutBack(invLerp(2.0, 2.5, t)), fill: '#EEF2FF', textColor: '#3730A3'
+        });
+
+        out += `<g opacity="${aOp.toFixed(3)}">
+          ${svgText(300, 808, 'By: superbear1859', { size: 24, fill: '#475569' })}
+        </g>`;
+        break;
+      }
+
+      case 1: { // Panel 1: Tombstone "RIP The wired guy" + "Noooo!!!"
+        out += weirdGuy({ x: 185, y: 585, scale: 1.15, arms: 'up', eyes: 'angry', mouth: 'yell', t });
+        out += tombstone({ x: 432, y: 635, scale: 1.05 });
+        out += speechBubble({
+          cx: 235, cy: 255, rx: 128, ry: 82,
+          tailX: 198, tailY: 448,
+          lines: ['Noooo!!!'],
+          fontSize: 44, scale: easeOutBack(invLerp(0.85, 1.35, t)), fill: '#FEE2E2', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      case 2: { // Panel 2: Future Weird Guy arrives! "Whaaat!!!" / "What are you sad about???" / "INSERTING THOUGHT!!!"
+        const fX = lerp(650, 488, easeOutBack(invLerp(0.15, 0.75, t)));
+        out += weirdGuy({ x: 112, y: 585, scale: 1.0, eyes: 'angry', mouth: 'yell', t });
+        out += tombstone({ x: 292, y: 625, scale: 0.92 });
+        out += futureWeirdGuy({ x: fX, y: 585, scale: 0.96, helmet: true, boots: true, t });
+
+        out += speechBubble({
+          cx: 132, cy: 268, rx: 98, ry: 68,
+          tailX: 118, tailY: 452,
+          lines: ['Whaaat!!!'],
+          fontSize: 32, scale: easeOutBack(invLerp(0.85, 1.3, t)), fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+        out += speechBubble({
+          cx: 418, cy: 225, rx: 142, ry: 102,
+          tailX: fX - 18, tailY: 442,
+          lines: ['What are', 'you sad', 'about???'],
+          fontSize: 32, scale: easeOutBack(invLerp(1.65, 2.15, t)), fill: '#E0F2FE', textColor: '#0369A1'
+        });
+
+        out += `<g opacity="${invLerp(0.25, 0.7, t).toFixed(2)}">
+          ${svgText(405, 625, 'beep!!!', { size: 24, fill: '#0891B2' })}
+          ${svgMultiText(278, 772, ['INSERTING', 'THOUGHT!!!'], { size: 32, lineHeight: 34, fill: '#4F46E5', letterSpacing: 2.5 })}
+        </g>`;
+        break;
+      }
+
+      case 3: { // Panel 3: "But you're dead!!!" / "That's the WIRED GUY!!!" + "chika chika!!!"
+        out += weirdGuy({ x: 135, y: 565, scale: 1.02, eyes: 'angry', mouth: 'yell', t });
+        out += tombstone({ x: 300, y: 605, scale: 0.84 });
+        out += futureWeirdGuy({ x: 468, y: 585, scale: 0.92, helmet: t < 1.35, boots: true, t });
+
+        out += speechBubble({
+          cx: 162, cy: 195, rx: 118, ry: 82,
+          tailX: 142, tailY: 422,
+          lines: ["But you're", 'dead!!!'],
+          fontSize: 32, scale: easeOutBack(invLerp(0.25, 0.75, t)), fill: '#FEE2E2', textColor: '#B91C1C'
+        });
+        out += speechBubble({
+          cx: 438, cy: 205, rx: 128, ry: 96,
+          tailX: 462, tailY: 438,
+          lines: ["That's the", 'WIRED', 'GUY!!!'],
+          fontSize: 32, scale: easeOutBack(invLerp(1.55, 2.05, t)), fill: '#E0F2FE', textColor: '#0369A1'
+        });
+        out += svgMultiText(462, 392, ['chika', 'chika!!!'], { size: 30, lineHeight: 32, fill: '#4F46E5', rot: -6, opacity: invLerp(1.15, 1.55, t) });
+        break;
+      }
+
+      case 4: { // Panel 4: "MAKING HOLOGRAM!!!" + Glowing Robot Hologram + "Ohhh!!!"
+        const holoS = easeOutBack(invLerp(0.75, 1.35, t));
+        const glow = 0.72 + 0.18 * Math.sin(t * 16);
+
+        out += weirdGuy({ x: 142, y: 315, scale: 0.96, arms: 'up', eyes: 'normal', mouth: 'open', t });
+        out += speechBubble({
+          cx: 318, cy: 145, rx: 102, ry: 64,
+          tailX: 185, tailY: 225,
+          lines: ['Ohhh!!!'],
+          fontSize: 38, scale: easeOutBack(invLerp(1.65, 2.1, t)), fill: '#FEF9C3', textColor: '#15803D'
+        });
+
+        out += futureWeirdGuy({ x: 448, y: 555, scale: 1.0, helmet: false, boots: true, t });
+        out += svgMultiText(448, 305, ['chom!!!', 'click!!!'], { size: 38, lineHeight: 42, fill: '#4F46E5', opacity: invLerp(0.15, 0.55, t) });
+        out += svgText(535, 615, 'beep!!!', { size: 28, fill: '#0891B2', opacity: invLerp(0.45, 0.85, t) });
+
+        // Glowing cyan diamond Hologram beam + Blocky Robot!
+        if (holoS > 0.05) {
+          out += `<g opacity="${(glow * clamp(holoS)).toFixed(2)}">
+            <polygon points="415,548 215,392 215,725" fill="#22D3EE" opacity="0.18"/>
+            <g transform="translate(215 560) scale(${holoS.toFixed(3)})">
+              <polygon points="0,-165 112,0 0,165 -112,0" fill="#CFFAFE" fill-opacity="0.72" stroke="#0891B2" stroke-width="3.6" stroke-linejoin="round"/>
+              <!-- Blocky Robot inside hologram -->
+              <g fill="#E0F2FE" stroke="#0E7490" stroke-width="3">
+                <circle cx="0" cy="-84" r="14"/>
+                <rect x="-8" y="-70" width="16" height="24"/>
+                <rect x="-36" y="-46" width="72" height="58" rx="4"/>
+                <rect x="-56" y="-36" width="20" height="36"/>
+                <rect x="36" y="-36" width="20" height="36"/>
+                <rect x="-24" y="12" width="18" height="46"/>
+                <rect x="6" y="12" width="18" height="46"/>
+                <circle cx="0" cy="-18" r="9" fill="#22D3EE"/>
+              </g>
+              ${svgText(0, 92, 'a robot', { size: 24, fill: '#0E7490' })}
+            </g>
+          </g>`;
+        }
+
+        out += svgMultiText(372, 768, ['MAKING', 'HOLOGRAM!!!'], { size: 34, lineHeight: 38, fill: '#0891B2', letterSpacing: 2.5, opacity: invLerp(0.65, 1.1, t) });
+        break;
+      }
+
+      case 5: { // Panel 5: "How do you know?!" / "Shoom!!!" / "I told myself!!!"
+        out += weirdGuy({ x: 118, y: 605, scale: 1.0, eyes: 'angry', mouth: 'open', t });
+        out += tombstone({ x: 288, y: 640, scale: 0.92 });
+        out += futureWeirdGuy({ x: 465, y: 585, scale: 1.0, helmet: false, boots: false, t });
+
+        out += speechBubble({
+          cx: 215, cy: 265, rx: 132, ry: 88, rot: -8,
+          tailX: 132, tailY: 472,
+          lines: ['How do', 'you know?!'],
+          fontSize: 34, scale: easeOutBack(invLerp(0.25, 0.75, t)), fill: '#FEF9C3', textColor: INK
+        });
+        out += svgText(462, 235, 'Shoom!!!', { size: 52, fill: '#0284C7', rot: -6, opacity: invLerp(1.05, 1.45, t) });
+        out += speechBubble({
+          cx: 458, cy: 745, rx: 118, ry: 58,
+          tailX: 465, tailY: 675,
+          lines: ['I told', 'myself!!!'],
+          fontSize: 30, scale: easeOutBack(invLerp(1.65, 2.15, t)), fill: '#E0F2FE', textColor: '#0369A1'
+        });
+        break;
+      }
+
+      case 6: { // Panel 6: "That does not make sense!!!" / "I remember a future me telling me!!!"
+        out += weirdGuy({ x: 118, y: 585, scale: 0.98, arms: 'up', eyes: 'angry', mouth: 'yell', t });
+        out += tombstone({ x: 298, y: 625, scale: 0.95 });
+        out += futureWeirdGuy({ x: 472, y: 585, scale: 0.98, helmet: false, boots: false, t });
+
+        out += speechBubble({
+          cx: 138, cy: 255, rx: 112, ry: 98,
+          tailX: 122, tailY: 448,
+          lines: ['That', 'does not', 'make', 'sense!!!'],
+          fontSize: 28, scale: easeOutBack(invLerp(0.25, 0.75, t)), fill: '#FEE2E2', textColor: '#B91C1C'
+        });
+        out += speechBubble({
+          cx: 418, cy: 218, rx: 152, ry: 108,
+          tailX: 468, tailY: 442,
+          lines: ['I remember', 'a future me', 'telling me!!!'],
+          fontSize: 29, scale: easeOutBack(invLerp(1.45, 1.95, t)), fill: '#E0F2FE', textColor: '#0369A1'
+        });
+        break;
+      }
+
+      case 7: { // Panel 7: Time Ray zaps BOTH of them! "ZAP!!!" "ZAP!!!" / "Noooooooooooo!!!"
+        const zapping = t > 0.32;
+        if (t > 0.35 && t < 1.5) shakeX = Math.sin(t * 68) * 6;
+
+        // Time ray gun hovering at top center!
+        out += `<g transform="translate(300 128)">
+          <rect x="-46" y="-56" width="92" height="72" rx="10" fill="#ECFEFF" stroke="${INK}" stroke-width="3.6"/>
+          <ellipse cx="0" cy="20" rx="34" ry="14" fill="${INK}"/>
+          ${svgMultiText(0, -18, ['Time', 'ray!!!'], { size: 22, lineHeight: 24, fill: '#0891B2' })}
+        </g>`;
+
+        // Twin zig-zag lightning bolts hitting BOTH Weird Guys!
+        if (zapping) {
+          const j = Math.sin(t * 48) * 7;
+          out += `<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 285 152 L ${(215 + j).toFixed(1)} 255 L ${(245 - j).toFixed(1)} 315 L ${(165 + j).toFixed(1)} 415 L 132 495" stroke="#22D3EE" stroke-width="11" opacity="0.7"/>
+            <path d="M 285 152 L ${(215 + j).toFixed(1)} 255 L ${(245 - j).toFixed(1)} 315 L ${(165 + j).toFixed(1)} 415 L 132 495" stroke="${INK}" stroke-width="3.4"/>
+            <path d="M 315 152 L ${(385 - j).toFixed(1)} 255 L ${(355 + j).toFixed(1)} 315 L ${(435 - j).toFixed(1)} 415 L 468 495" stroke="#A855F7" stroke-width="11" opacity="0.7"/>
+            <path d="M 315 152 L ${(385 - j).toFixed(1)} 255 L ${(355 + j).toFixed(1)} 315 L ${(435 - j).toFixed(1)} 415 L 468 495" stroke="${INK}" stroke-width="3.4"/>
+          </g>`;
+          out += svgText(118, 225, 'ZAP!!!', { size: 54, fill: '#0891B2', rot: -16 });
+          out += svgText(482, 225, 'ZAP!!!', { size: 54, fill: '#7C3AED', rot: 14 });
+        }
+
+        out += weirdGuy({ x: 118, y: 565, scale: 0.96, arms: 'up', eyes: 'angry', mouth: 'yell', t });
+        out += tombstone({ x: 298, y: 605, scale: 0.92 });
+        out += futureWeirdGuy({ x: 472, y: 565, scale: 0.98, helmet: false, boots: false, t });
+
+        out += speechBubble({
+          cx: 300, cy: 752, rx: 245, ry: 52,
+          tailX: 122, tailY: 662, tail2X: 468, tail2Y: 662,
+          lines: ['Noooooooooooo!!!'],
+          fontSize: 38, scale: easeOutBack(invLerp(1.25, 1.75, t)), fill: '#FEE2E2', textColor: '#DC2626'
+        });
+        break;
+      }
+
+      case 8: { // Panel 8: ULTRA-FUTURE MECH WEIRD GUY! "Whoa!!!" + Lava / water / Beep!!!
+        bg = '#F5F3FF';
+        const mS = easeOutBack(invLerp(0.1, 0.72, t));
+        out += weirdGuy({ x: 96, y: 645, scale: 0.88, arms: 'up', eyes: 'angry', mouth: 'yell', t });
+        out += futureWeirdGuy({ x: 242, y: 645, scale: 0.88, helmet: true, boots: true, t });
+        out += ultraFutureMech({ x: 455, y: 495, scale: 1.02 * mS, t });
+
+        // Labels & SFX
+        out += `<g opacity="${invLerp(0.55, 1.0, t).toFixed(2)}">
+          ${svgText(285, 225, 'Lava', { size: 34, fill: '#EA580C', rot: -10 })}
+          ${handArrow(295, 245, 338, 322, 305, 290, '#EA580C')}
+          ${svgText(545, 298, 'water', { size: 24, fill: '#0284C7' })}
+          ${svgText(462, 138, 'Beep!!!', { size: 44, fill: '#4F46E5', rot: -8 })}
+          ${svgText(242, 795, 'Beep!!!', { size: 30, fill: '#0891B2' })}
+        </g>`;
+
+        out += speechBubble({
+          cx: 175, cy: 405, rx: 128, ry: 68,
+          tailX: 112, tailY: 528, tail2X: 228, tail2Y: 528,
+          lines: ['Whoa!!!'],
+          fontSize: 44, scale: easeOutBack(invLerp(1.4, 1.9, t)), fill: '#FEF9C3', textColor: '#4F46E5'
+        });
+        break;
+      }
+
+      case 9: { // Panel 9: "I'm not high tech!!!" / "chika! chika!" / "shoom!!!" (Pod Tripod!)
+        bg = '#F5F3FF';
+        out += weirdGuy({ x: 108, y: 585, scale: 0.92, arms: 'out', eyes: 'angry', mouth: 'yell', t });
+        out += futureWeirdGuy({ x: 258, y: 585, scale: 0.92, helmet: true, boots: true, t });
+        out += ultraFuturePod({ x: 462, y: 515, scale: 1.0, mode: 'tripod', t });
+
+        out += speechBubble({
+          cx: 175, cy: 235, rx: 132, ry: 98,
+          tailX: 118, tailY: 455,
+          lines: ["I'm not", 'high', 'tech!!!'],
+          fontSize: 34, scale: easeOutBack(invLerp(0.3, 0.8, t)), fill: '#FEF9C3', textColor: '#B91C1C'
+        });
+        out += svgMultiText(185, 725, ['chika!', 'chika!'], { size: 32, lineHeight: 34, fill: '#4F46E5', rot: -8, opacity: invLerp(1.05, 1.45, t) });
+        out += svgText(458, 178, 'shoom!!!', { size: 54, fill: '#0284C7', rot: -6, opacity: invLerp(1.45, 1.85, t) });
+        break;
+      }
+
+      case 10: { // Panel 10: "chom!!! click!!!" + "shrap!!!" (Twin Jet Pod!)
+        bg = '#F5F3FF';
+        out += weirdGuy({ x: 98, y: 555, scale: 0.94, eyes: 'normal', mouth: 'open', t });
+        out += futureWeirdGuy({ x: 268, y: 555, scale: 0.94, helmet: false, boots: true, t });
+        out += ultraFuturePod({ x: 468, y: 525, scale: 0.96, mode: 'jets', t });
+
+        out += svgMultiText(268, 305, ['chom!!!', 'click!!!'], { size: 42, lineHeight: 46, fill: '#4F46E5', opacity: invLerp(0.15, 0.55, t) });
+        out += svgText(455, 225, 'shrap!!!', { size: 58, fill: '#EA580C', rot: -8, opacity: invLerp(0.85, 1.25, t) });
+        break;
+      }
+
+      case 11: { // Panel 11: "shoom!!! shing!!!" (Sleek Single-Thruster Hover Pod!)
+        bg = '#F5F3FF';
+        const hov = Math.sin(t * 7) * 8;
+        out += weirdGuy({ x: 96, y: 555, scale: 0.96, eyes: 'normal', mouth: 'open', t });
+        out += futureWeirdGuy({ x: 258, y: 555, scale: 0.98, helmet: false, boots: false, t });
+        out += ultraFuturePod({ x: 468, y: 495 + hov, scale: 0.96, mode: 'hover', t });
+
+        out += svgText(210, 235, 'shoom!!!', { size: 52, fill: '#0284C7', rot: -6, opacity: invLerp(0.15, 0.55, t) });
+        out += svgText(468, 225, 'shing!!!', { size: 56, fill: '#7C3AED', rot: -8, opacity: invLerp(0.75, 1.15, t) });
+        break;
+      }
+
+      case 12: { // Panel 12: "Shoom!!!" + Time Ray pops out of pod -> "zap!!!" / "Noooo!!!" / "Bye!!!"
+        bg = '#F5F3FF';
+        const zapping = t > 0.35;
+        if (t > 0.35 && t < 1.35) shakeX = Math.sin(t * 64) * 5;
+
+        out += svgText(455, 92, 'Shoom!!!', { size: 48, fill: '#0284C7', rot: -5, opacity: invLerp(0.08, 0.4, t) });
+        out += weirdGuy({ x: 96, y: 565, scale: 0.92, eyes: 'angry', mouth: 'yell', t });
+        out += futureWeirdGuy({ x: 265, y: 565, scale: 0.96, helmet: false, boots: false, t });
+        out += ultraFuturePod({ x: 472, y: 515, scale: 0.94, mode: 'ray', t });
+
+        if (zapping) {
+          const j = Math.sin(t * 48) * 6;
+          out += `<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 465 325 L 335 ${(275 + j).toFixed(1)} L 215 ${(295 - j).toFixed(1)} L 125 ${(365 + j).toFixed(1)} L 105 462" stroke="#22D3EE" stroke-width="11" opacity="0.72"/>
+            <path d="M 465 325 L 335 ${(275 + j).toFixed(1)} L 215 ${(295 - j).toFixed(1)} L 125 ${(365 + j).toFixed(1)} L 105 462" stroke="${INK}" stroke-width="3.4"/>
+          </g>`;
+          out += svgText(295, 375, 'zap!!!', { size: 58, fill: '#0891B2', rot: -10 });
+        }
+
+        out += speechBubble({
+          cx: 112, cy: 735, rx: 88, ry: 52,
+          tailX: 102, tailY: 660,
+          lines: ['Noooo!!!'],
+          fontSize: 30, scale: easeOutBack(invLerp(1.05, 1.5, t)), fill: '#FEE2E2', textColor: '#DC2626'
+        });
+        out += speechBubble({
+          cx: 382, cy: 745, rx: 132, ry: 60,
+          tailX: 278, tailY: 665, tail2X: 468, tail2Y: 665,
+          lines: ['Bye!!!'],
+          fontSize: 44, scale: easeOutBack(invLerp(1.75, 2.25, t)), fill: '#E0F2FE', textColor: '#0369A1'
+        });
+        break;
+      }
+
+      case 13: { // Panel 13: "Hi again!!! You're in the present!!!" + Standing on a Pyramid of Folding Chairs!
+        out += svgMultiText(300, 125, ['Hi again!!!', "You're in the", 'present!!!'], {
+          size: 48, lineHeight: 56, fill: '#1D4ED8', opacity: invLerp(0.08, 0.45, t)
+        });
+
+        // Pyramid of folding chairs!
+        out += foldingChair({ x: 205, y: 695, scale: 0.78 });
+        out += foldingChair({ x: 395, y: 695, scale: 0.78, seatColor: '#38BDF8' });
+        out += foldingChair({ x: 300, y: 612, scale: 0.78, seatColor: '#818CF8' });
+        out += foldingChair({ x: 300, y: 528, scale: 0.72, seatColor: '#60A5FA' });
+
+        out += weirdGuy({ x: 298, y: 445, scale: 1.05, arms: 'up', eyes: 'angry', mouth: 'yell', t });
+        break;
+      }
+
+      case 14: { // Panel 14: Prankster "kick!!!" + Tall stack of folding chairs crashes on Weird Guy! "ow, ow, ow, ow, ow, ow!!!"
+        const kP = easeOutCubic(invLerp(0.25, 0.9, t));
+        const drop = easeOutBounce(invLerp(0.45, 1.15, t));
+        if (t > 0.75 && t < 1.15) shakeY = Math.sin(t * 72) * 6;
+
+        out += prankster({ x: lerp(95, 148, kP), y: 595, scale: 1.18, kick: kP, t });
+        out += svgText(215, 765, 'kick!!!', { size: 68, fill: '#EA580C', rot: -6, opacity: invLerp(0.45, 0.85, t) });
+
+        // Flat squished Weird Guy under a tower of 5 folding chairs!
+        out += weirdGuy({ x: 432, y: 645, scale: 0.96, rot: 90, eyes: 'squint', mouth: 'yell', t });
+        const dy = lerp(-240, 0, drop);
+        for (let i = 0; i < 5; i++) {
+          out += foldingChair({ x: 425 + (i % 2 ? 6 : -6), y: 560 - i * 62 + dy, scale: 0.68, rot: (i % 2 ? 4 : -4), seatColor: i % 2 ? '#38BDF8' : '#60A5FA' });
+        }
+
+        out += speechBubble({
+          cx: 452, cy: 765, rx: 112, ry: 58,
+          tailX: 432, tailY: 688,
+          lines: ['ow, ow, ow,', 'ow, ow, ow!!!'],
+          fontSize: 22, scale: easeOutBack(invLerp(1.45, 1.95, t)), fill: '#FEE2E2', textColor: '#B91C1C'
+        });
+        break;
+      }
+
+      case 15: { // Panel 15: "The End" + Sore Weird Guy "owwww!!!"
+        const endS = easeOutBack(invLerp(0.4, 1.0, t));
+        out += `<g transform="translate(300 245) scale(${endS.toFixed(3)})">
+          ${svgText(0, 16, 'The End', { size: 92, fill: INK })}
+          <path d="M -165 44 Q 0 32 165 44" fill="none" stroke="#818CF8" stroke-width="5.5" stroke-linecap="round"/>
+        </g>`;
+
+        out += weirdGuy({ x: 422, y: 595, scale: 1.2, arms: 'out', eyes: 'angry', mouth: 'yell', t });
+        out += speechBubble({
+          cx: 215, cy: 525, rx: 142, ry: 88,
+          tailX: 365, tailY: 545,
+          lines: ['owwww!!!'],
+          fontSize: 44, scale: easeOutBack(invLerp(1.5, 2.0, t)), fill: '#FEE2E2', textColor: '#B91C1C'
+        });
+
+        out += svgText(300, 810, 'The Weird Guy #11  •  By superbear1859', {
+          size: 19, fill: '#475569', opacity: invLerp(2.6, 3.2, t) * 0.85
+        });
+        break;
+      }
+    }
+
+    return wrapPanel(out, { panelNum: s.panelNum, shakeX, shakeY, bg });
+  }
+
+  function timeToScene(globalT) {
+    const t = clamp(globalT, 0, TOTAL_DURATION);
+    for (let i = 0; i < SCENES.length; i++) {
+      if (t < SCENES[i].end || i === SCENES.length - 1) return { sceneIdx: i, localT: t - SCENES[i].start };
+    }
+    return { sceneIdx: 0, localT: 0 };
+  }
+
+  // =========================================================================
+  // REAL-TIME WEB AUDIO CARTOON SFX & CHATTER SYNTHESIZER
+  // =========================================================================
+  let audioCtx = null;
+  let muted = false;
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playTone(freq, dur, type = 'triangle', vol = 0.16, delay = 0) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, now);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + dur + 0.02);
+  }
+
+  function playSweep(f0, f1, dur, type = 'triangle', vol = 0.18, delay = 0) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(Math.max(20, f0), now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, f1), now + dur);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + dur + 0.02);
+  }
+
+  function playNoise(dur, vol = 0.16, filterFreq = 1200, filterType = 'bandpass', delay = 0) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime + delay;
+    const len = Math.max(1, Math.floor(audioCtx.sampleRate * dur));
+    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const flt = audioCtx.createBiquadFilter(); flt.type = filterType; flt.frequency.setValueAtTime(filterFreq, now);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(vol, now); g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    src.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+    src.start(now);
+  }
+
+  function triggerCue(cue) {
+    if (muted || !audioCtx) return;
+    const tp = cue.type;
+    if (tp === 'intro_jingle') {
+      [392, 494, 587, 784].forEach((f, i) => playTone(f, 0.16, 'triangle', 0.18, i * 0.10));
+    } else if (tp === 'outro_jingle') {
+      [[523, 0.16, 0], [494, 0.16, 0.15], [466, 0.16, 0.30], [440, 0.42, 0.45]].forEach(([f, d, dl]) => playTone(f, d, 'triangle', 0.18, dl));
+    } else if (tp === 'weird_talk') {
+      const cnt = cue.count || 5, base = cue.pitch || 560;
+      for (let i = 0; i < cnt; i++) playTone(base + (Math.random() * 150 - 55), 0.065, 'square', 0.08, i * 0.085);
+    } else if (tp === 'future_talk') {
+      const cnt = cue.count || 5;
+      for (let i = 0; i < cnt; i++) playTone(380 + (i % 3) * 90, 0.075, 'sawtooth', 0.09, i * 0.095);
+    } else if (tp === 'narrator_talk') {
+      const cnt = cue.count || 5, base = cue.pitch || 205;
+      for (let i = 0; i < cnt; i++) playTone(base + (Math.random() * 45 - 20), 0.10, 'sawtooth', 0.10, i * 0.115);
+    } else if (tp === 'weird_yell') {
+      const b = cue.pitch || 650;
+      playSweep(b * 0.85, b * 1.25, 0.28, 'square', 0.12);
+    } else if (tp === 'dramatic_chord') {
+      [220, 261, 311].forEach(f => playTone(f, 0.55, 'sawtooth', 0.10));
+    } else if (tp === 'robot_beep') {
+      [880, 1175, 1046].forEach((f, i) => playTone(f, 0.08, 'sine', 0.14, i * 0.09));
+    } else if (tp === 'mech_chika') {
+      for (let i = 0; i < 4; i++) {
+        playNoise(0.06, 0.18, 2200, 'highpass', i * 0.09);
+        playTone(420 + (i % 2) * 240, 0.06, 'square', 0.09, i * 0.09);
+      }
+    } else if (tp === 'hologram_hum') {
+      [523, 659, 784, 1046, 1318].forEach((f, i) => playTone(f, 0.26, 'sine', 0.12, i * 0.07));
+    } else if (tp === 'shoom_retract') {
+      playSweep(980, 240, 0.34, 'triangle', 0.18);
+      playNoise(0.28, 0.16, 1400, 'bandpass');
+    } else if (tp === 'shing_blade') {
+      playSweep(1100, 2400, 0.28, 'sine', 0.18);
+      playTone(1760, 0.30, 'triangle', 0.12, 0.06);
+    } else if (tp === 'time_zap') {
+      for (let i = 0; i < 6; i++) playSweep(420 + i * 160, 1400 - i * 120, 0.09, 'sawtooth', 0.14, i * 0.08);
+      playSweep(1600, 260, 0.45, 'sine', 0.18, 0.42);
+    } else if (tp === 'mech_reveal') {
+      playSweep(160, 48, 0.45, 'sine', 0.26);
+      [330, 440, 659, 880].forEach((f, i) => playTone(f, 0.22, 'sawtooth', 0.10, 0.12 + i * 0.08));
+    } else if (tp === 'kick_whack') {
+      playNoise(0.14, 0.26, 950, 'bandpass');
+      playSweep(240, 880, 0.24, 'triangle', 0.20, 0.04);
+    } else if (tp === 'chair_clatter') {
+      playNoise(0.26, 0.24, 1800, 'bandpass');
+      playTone(620, 0.14, 'square', 0.11, 0.02);
+      playTone(430, 0.16, 'square', 0.11, 0.11);
+      playSweep(180, 55, 0.22, 'sine', 0.24, 0.05);
+    } else if (tp === 'giggle') {
+      [720, 860, 780, 960].forEach((f, i) => playTone(f, 0.075, 'triangle', 0.13, i * 0.08));
+    }
+  }
+
+  // =========================================================================
+  // PLAYER STATE & UI
+  // =========================================================================
+  const stageEl = document.getElementById('stage');
+  const sceneBadge = document.getElementById('sceneBadge');
+  const timeReadout = document.getElementById('timeReadout');
+  const scrubber = document.getElementById('scrubber');
+  const playOverlay = document.getElementById('playOverlay');
+  const btnPlay = document.getElementById('btnPlay');
+  const playIcon = document.getElementById('playIcon');
+  const playLabel = document.getElementById('playLabel');
+  const btnRestart = document.getElementById('btnRestart');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const btnMute = document.getElementById('btnMute');
+  const speedSelect = document.getElementById('speedSelect');
+  const sceneGrid = document.getElementById('sceneGrid');
+
+  let currentTime = 0, playing = false, speed = 1.0, lastFrameTs = null;
+  let firedCues = new Set(), activeSceneIdx = -1, hasInteracted = false;
+
+  SCENES.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'scene-pill';
+    btn.dataset.idx = i;
+    btn.textContent = s.panelNum === null ? 'Cover' : `${s.panelNum}. ${s.title}`;
+    btn.title = s.panelNum === null ? 'Cover' : `Panel ${s.panelNum}: ${s.title}`;
+    btn.addEventListener('click', () => {
+      ensureAudio();
+      playOverlay.style.opacity = '0';
+      playOverlay.style.pointerEvents = 'none';
+      seekTo(s.start + 0.01);
+      setPlaying(true);
+    });
+    sceneGrid.appendChild(btn);
+  });
+
+  const fmtTime = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+
+  function updateUI() {
+    const { sceneIdx, localT } = timeToScene(currentTime);
+    const s = SCENES[sceneIdx];
+    stageEl.innerHTML = renderScene(sceneIdx, localT);
+    sceneBadge.textContent = `${s.panelNum === null ? 'Cover' : 'Panel ' + s.panelNum} • ${sceneIdx + 1} / ${SCENES.length}`;
+    timeReadout.textContent = `${fmtTime(currentTime)} / ${fmtTime(TOTAL_DURATION)}`;
+    scrubber.value = Math.round((currentTime / TOTAL_DURATION) * 1000);
+    if (sceneIdx !== activeSceneIdx) {
+      activeSceneIdx = sceneIdx;
+      for (const el of sceneGrid.children) {
+        const isCur = Number(el.dataset.idx) === sceneIdx;
+        el.className = isCur ? 'scene-pill active' : 'scene-pill';
+      }
+      if (hasInteracted && window.WeirdGuyProgress) {
+        window.WeirdGuyProgress.save('11', sceneIdx, SCENES.length, currentTime >= TOTAL_DURATION - 0.1);
+      }
+    }
+  }
+
+  function seekTo(t) {
+    hasInteracted = true;
+    currentTime = clamp(t, 0, TOTAL_DURATION);
+    firedCues = new Set();
+    for (const c of AUDIO_CUES) if (c.globalT < currentTime - 0.05) firedCues.add(c.id);
+    updateUI();
+  }
+
+  function setPlaying(val) {
+    playing = val;
+    playIcon.innerHTML = playing ? '&#10074;&#10074;' : '&#9654;';
+    playLabel.textContent = playing ? 'Pause' : 'Play';
+    if (playing) {
+      hasInteracted = true;
+      ensureAudio();
+      playOverlay.style.opacity = '0';
+      playOverlay.style.pointerEvents = 'none';
+      if (currentTime >= TOTAL_DURATION - 0.05) seekTo(0);
+      lastFrameTs = performance.now();
+      requestAnimationFrame(tick);
+    }
+  }
+
+  function tick(now) {
+    if (!playing) return;
+    const dt = Math.min(0.08, (now - lastFrameTs) / 1000) * speed;
+    lastFrameTs = now;
+    currentTime = Math.min(TOTAL_DURATION, currentTime + dt);
+    for (const c of AUDIO_CUES) {
+      if (!firedCues.has(c.id) && c.globalT <= currentTime) {
+        firedCues.add(c.id);
+        triggerCue(c);
+      }
+    }
+    updateUI();
+    if (currentTime >= TOTAL_DURATION) {
+      if (window.WeirdGuyProgress) window.WeirdGuyProgress.save('11', SCENES.length - 1, SCENES.length, true);
+      setPlaying(false);
+    }
+    else requestAnimationFrame(tick);
+  }
+
+  btnPlay.addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('stageContainer').addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('overlayPlayBtn').addEventListener('click', (e) => { e.stopPropagation(); setPlaying(true); });
+  btnRestart.addEventListener('click', () => { seekTo(0); setPlaying(true); });
+  btnPrev.addEventListener('click', () => seekTo(SCENES[Math.max(0, activeSceneIdx - 1)].start + 0.01));
+  btnNext.addEventListener('click', () => seekTo(SCENES[Math.min(SCENES.length - 1, activeSceneIdx + 1)].start + 0.01));
+  scrubber.addEventListener('input', () => seekTo((Number(scrubber.value) / 1000) * TOTAL_DURATION));
+  speedSelect.addEventListener('change', () => { speed = Number(speedSelect.value) || 1; });
+  btnMute.addEventListener('click', () => {
+    muted = !muted;
+    btnMute.innerHTML = muted ? '&#128263; Muted' : '&#128266; Sound On';
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+    if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+    else if (e.code === 'ArrowLeft') { e.preventDefault(); btnPrev.click(); }
+    else if (e.code === 'ArrowRight') { e.preventDefault(); btnNext.click(); }
+    else if (e.key === 'm' || e.key === 'M') { btnMute.click(); }
+  });
+
+  window.WeirdGuyVolume = {
+    id: '11',
+    number: 11,
+    title: 'Is He Dead in the Future??',
+    edition: 'Blank Edition!!!',
+    author: 'superbear1859',
+    scenes: SCENES,
+    renderScene: renderScene
+  };
+
+  const initialScene = window.WeirdGuyProgress ? window.WeirdGuyProgress.getInitialSceneFromHash(SCENES.length) : null;
+  if (initialScene !== null && initialScene > 0) {
+    currentTime = SCENES[initialScene].start + 0.01;
+    updateUI();
+  } else {
+    currentTime = 3.4;
+    updateUI();
+    currentTime = 0;
+    scrubber.value = 0;
+    timeReadout.textContent = `0:00 / ${fmtTime(TOTAL_DURATION)}`;
+  }
+})();
+</script>
+  <script src="../../assets/print.js?v=2"></script>
+</body>
+</html>
