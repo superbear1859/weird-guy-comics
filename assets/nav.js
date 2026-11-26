@@ -131,6 +131,9 @@
     btnMute.parentElement.appendChild(btnFs);
 
     let pseudoFs = false;
+    let wakeLock = null;
+    let wakeLockPending = false;
+    const playLabelEl = document.getElementById('playLabel');
 
     function getNativeFsEl() {
       return document.fullscreenElement || document.webkitFullscreenElement || null;
@@ -140,10 +143,52 @@
       return Boolean(getNativeFsEl() === stageCard || pseudoFs);
     }
 
+    function isComicPlaying() {
+      return Boolean(playLabelEl && playLabelEl.textContent.trim().toLowerCase() === 'pause');
+    }
+
+    function shouldKeepAwake() {
+      return isFullscreen() || isComicPlaying();
+    }
+
+    function requestWakeLock() {
+      if (!('wakeLock' in navigator) || !navigator.wakeLock || wakeLock || wakeLockPending) return;
+      if (document.visibilityState !== 'visible') return;
+      wakeLockPending = true;
+      navigator.wakeLock.request('screen')
+        .then((sentinel) => {
+          wakeLockPending = false;
+          if (!shouldKeepAwake()) {
+            sentinel.release().catch(() => {});
+            return;
+          }
+          wakeLock = sentinel;
+          sentinel.addEventListener('release', () => {
+            if (wakeLock === sentinel) wakeLock = null;
+          });
+        })
+        .catch(() => {
+          wakeLockPending = false;
+        });
+    }
+
+    function releaseWakeLock() {
+      if (!wakeLock) return;
+      const s = wakeLock;
+      wakeLock = null;
+      s.release().catch(() => {});
+    }
+
+    function syncWakeLock() {
+      if (shouldKeepAwake()) requestWakeLock();
+      else releaseWakeLock();
+    }
+
     function syncFsButton() {
       const active = isFullscreen();
       btnFs.innerHTML = active ? '&#x2715; Exit Fullscreen' : '&#x26F6; Fullscreen';
       btnFs.setAttribute('aria-pressed', active ? 'true' : 'false');
+      syncWakeLock();
     }
 
     function setPseudoFs(on) {
@@ -182,6 +227,16 @@
     btnFs.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', syncFsButton);
     document.addEventListener('webkitfullscreenchange', syncFsButton);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') syncWakeLock();
+      else releaseWakeLock();
+    });
+    window.addEventListener('pagehide', releaseWakeLock);
+
+    if (playLabelEl && typeof MutationObserver !== 'undefined') {
+      new MutationObserver(syncWakeLock).observe(playLabelEl, { childList: true, characterData: true, subtree: true });
+    }
+
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
       if (e.key === 'f' || e.key === 'F') {
